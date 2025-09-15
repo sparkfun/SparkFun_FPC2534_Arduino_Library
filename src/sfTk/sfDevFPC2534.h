@@ -230,6 +230,15 @@ class sfDevFPC2534
     fpc_result_t processNextReponse(void);
 
   private:
+    parseStatusCommand(cmd_hdr, size);
+    fpc_result_t parseVersionCommand(fpc_cmd_hdr_t *, size_t);
+    fpc_result_t parseEndrollStatusCommand(fpc_cmd_hdr_t *, size_t);
+    fpc_result_t parseIdentifyCommand(fpc_cmd_hdr_t *, size_t);
+    fpc_result_t parseListTemplatesCommand(fpc_cmd_hdr_t *, size_t);
+    fpc_result_t parseNavigationEventCommand(fpc_cmd_hdr_t *, size_t);
+    fpc_result_t parseGPIOControlCommand(fpc_cmd_hdr_t *, size_t);
+    fpc_result_t parseGetSystemConfigCommand(fpc_cmd_hdr_t *, size_t);
+    fpc_result_t parseBISTCommand(fpc_cmd_hdr_t *, size_t);
     fpc_result_t parseCommand(uint8_t *frame_payload, size_t payload_size);
 
     sfDevFPC2534IComm *_comm = nullptr;

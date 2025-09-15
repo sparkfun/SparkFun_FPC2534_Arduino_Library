@@ -90,7 +90,7 @@ fpc_result_t sfDevFPC2534::parseIdentifyCommand(fpc_cmd_hdr_t *cmd_hdr, size_t s
 }
 
 //--------------------------------------------------------------------------------------------
-fpc_result_t fDevFPC2534::parseListTemplatesCommand(fpc_cmd_hdr_t *cmd_hdr, size_t size)
+fpc_result_t sfDevFPC2534::parseListTemplatesCommand(fpc_cmd_hdr_t *cmd_hdr, size_t size)
 {
     fpc_cmd_template_info_response_t *list = (fpc_cmd_template_info_response_t *)cmd_hdr;
 
@@ -103,7 +103,8 @@ fpc_result_t fDevFPC2534::parseListTemplatesCommand(fpc_cmd_hdr_t *cmd_hdr, size
     return FPC_RESULT_OK;
 }
 
-fpc_result_t fDevFPC2534::parseNavigationEventCommand(fpc_cmd_hdr_t *cmd_hdr, size_t size)
+//--------------------------------------------------------------------------------------------
+fpc_result_t sfDevFPC2534::parseNavigationEventCommand(fpc_cmd_hdr_t *cmd_hdr, size_t size)
 {
 
     if (size != sizeof(fpc_cmd_navigation_status_event_t))
@@ -117,240 +118,185 @@ fpc_result_t fDevFPC2534::parseNavigationEventCommand(fpc_cmd_hdr_t *cmd_hdr, si
     return FPC_RESULT_OK;
 }
 
-static fpc_result_t parse_cmd_gpio_control(fpc_cmd_hdr_t *cmd_hdr, size_t size)
+//--------------------------------------------------------------------------------------------
+fpc_result_t sfDevFPC2534::parseGPIOControlCommand(fpc_cmd_hdr_t *cmd_hdr, size_t size)
 {
-    fpc_result_t result = FPC_RESULT_OK;
+    if (size != sizeof(fpc_cmd_pinctrl_gpio_response_t))
+        return FPC_RESULT_INVALID_PARAM;
+
     fpc_cmd_pinctrl_gpio_response_t *cmd_rsp = (fpc_cmd_pinctrl_gpio_response_t *)cmd_hdr;
 
-    if (size != sizeof(fpc_cmd_pinctrl_gpio_response_t))
-    {
-        fpc_sample_logf("CMD_GPIO_CONTROL invalid size (%d vs %d)", size, sizeof(fpc_cmd_pinctrl_gpio_response_t));
-        result = FPC_RESULT_INVALID_PARAM;
-    }
-
-    if (result == FPC_RESULT_OK)
-    {
-        fpc_sample_logf("CMD_GPIO_CONTROL.state = %s", get_gpio_state_str_(cmd_rsp->state));
-    }
-
     if (_callbacks.on_gpio_control)
-    {
         _callbacks.on_gpio_control(cmd_rsp->state);
-    }
-
-    return result;
-}
-
-static fpc_result_t parse_cmd_get_system_config(fpc_cmd_hdr_t *cmd_hdr, size_t size)
-{
-    fpc_result_t result = FPC_RESULT_OK;
-    fpc_cmd_get_config_response_t *cmd_cfg = (fpc_cmd_get_config_response_t *)cmd_hdr;
-
-    if (size < sizeof(fpc_cmd_get_config_response_t))
-    {
-        fpc_sample_logf("CMD_GET_SYSTEM_CONFIG invalid size (%d vs %d)", size, sizeof(fpc_cmd_get_config_response_t));
-        result = FPC_RESULT_INVALID_PARAM;
-    }
-
-    if (result == FPC_RESULT_OK)
-    {
-        fpc_sample_logf("%s Config:", cmd_cfg->config_type == 0 ? "Default" : "Custom");
-        fpc_sample_logf("CMD_GET_SYSTEM_CONFIG.ver = %d", cmd_cfg->cfg.version);
-
-        fpc_sample_logf("CMD_GET_SYSTEM_CONFIG.sys_flags = %08X:", cmd_cfg->cfg.sys_flags);
-
-        if (cmd_cfg->cfg.sys_flags & CFG_SYS_FLAG_STATUS_EVT_AT_BOOT)
-            fpc_sample_logf(" - CFG_SYS_FLAG_STATUS_EVT_AT_BOOT");
-        if (cmd_cfg->cfg.sys_flags & CFG_SYS_FLAG_UART_IN_STOP_MODE)
-            fpc_sample_logf(" - CFG_SYS_FLAG_UART_IN_STOP_MODE");
-        if (cmd_cfg->cfg.sys_flags & CFG_SYS_FLAG_UART_IRQ_BEFORE_TX)
-            fpc_sample_logf(" - CFG_SYS_FLAG_UART_IRQ_BEFORE_TX");
-        if (cmd_cfg->cfg.sys_flags & CFG_SYS_FLAG_ALLOW_FACTORY_RESET)
-            fpc_sample_logf(" - CFG_SYS_FLAG_ALLOW_FACTORY_RESET");
-
-        fpc_sample_logf("CMD_GET_SYSTEM_CONFIG.uart_irq_dly = %d ms", cmd_cfg->cfg.uart_delay_before_irq_ms);
-        fpc_sample_logf("CMD_GET_SYSTEM_CONFIG.uart_baudrate_idx = %d", cmd_cfg->cfg.uart_baudrate);
-        fpc_sample_logf("CMD_GET_SYSTEM_CONFIG.finger_scan_intv = %d ms", cmd_cfg->cfg.finger_scan_interval_ms);
-        fpc_sample_logf("CMD_GET_SYSTEM_CONFIG.idfy_max_consecutive_fails = %d",
-                        cmd_cfg->cfg.idfy_max_consecutive_fails);
-        fpc_sample_logf("CMD_GET_SYSTEM_CONFIG.idfy_lockout_time_s = %d s", cmd_cfg->cfg.idfy_lockout_time_s);
-        fpc_sample_logf("CMD_GET_SYSTEM_CONFIG.idle_time_before_sleep_ms = %d ms",
-                        cmd_cfg->cfg.idle_time_before_sleep_ms);
-        fpc_sample_logf("CMD_GET_SYSTEM_CONFIG.enroll_touches = %d", cmd_cfg->cfg.enroll_touches);
-        fpc_sample_logf("CMD_GET_SYSTEM_CONFIG.enroll_immobile_touches = %d", cmd_cfg->cfg.enroll_immobile_touches);
-        fpc_sample_logf("CMD_GET_SYSTEM_CONFIG.i2c_address = %x", cmd_cfg->cfg.i2c_address);
-    }
-
-    if (_callbacks.on_system_config_get)
-    {
-        _callbacks.on_system_config_get(&cmd_cfg->cfg);
-    }
-
-    return result;
-}
-
-static fpc_result_t parse_cmd_bist(fpc_cmd_hdr_t *cmd_hdr, size_t size)
-{
-    fpc_result_t result = FPC_RESULT_OK;
-    fpc_cmd_bist_response_t *cmd_rsp = (fpc_cmd_bist_response_t *)cmd_hdr;
-
-    if (size < sizeof(fpc_cmd_bist_response_t))
-    {
-        fpc_sample_logf("CMD_BIST invalid size (%d vs %d)", size, sizeof(fpc_cmd_pinctrl_gpio_response_t));
-        result = FPC_RESULT_INVALID_PARAM;
-    }
-
-    if (result == FPC_RESULT_OK)
-    {
-        fpc_sample_logf("CMD_BIST.sensor_test_result = %d", cmd_rsp->sensor_test_result);
-        fpc_sample_logf("CMD_BIST.test_verdict = %d", cmd_rsp->test_verdict);
-    }
-
-    if (_callbacks.on_bist_done)
-    {
-        _callbacks.on_bist_done(cmd_rsp->test_verdict);
-    }
-
-    return result;
-}
-
-static fpc_result_t parse_cmd_get_template_data(fpc_cmd_hdr_t *cmd, uint16_t size)
-{
-    fpc_result_t result = FPC_RESULT_OK;
-    fpc_cmd_template_data_response_t *data = (fpc_cmd_template_data_response_t *)cmd;
-
-    if (size < sizeof(fpc_cmd_template_data_response_t))
-    {
-        fpc_sample_logf("CMD_GET_TEMPLATE_DATA invalid size (%d vs %d)", size,
-                        sizeof(fpc_cmd_template_data_response_t));
-        result = FPC_RESULT_INVALID_PARAM;
-    }
-
-    if (result == FPC_RESULT_OK)
-    {
-        fpc_sample_logf("Setup Template Data Transfer. Max chunk size = %d", data->max_chunk_size);
-        // Start transfer loop
-        result = fpc_cmd_data_get_setup(data->total_size, data->max_chunk_size);
-    }
-
-    if (result == FPC_RESULT_OK)
-    {
-        result = fpc_cmd_data_get_request();
-    }
 
     return FPC_RESULT_OK;
 }
 
-static fpc_result_t parse_cmd_put_template_data(fpc_cmd_hdr_t *cmd, uint16_t size)
+//--------------------------------------------------------------------------------------------
+fpc_result_t sfDevFPC2534::parseGetSystemConfigCommand(fpc_cmd_hdr_t *cmd_hdr, size_t size)
 {
-    fpc_result_t result = FPC_RESULT_OK;
-    fpc_cmd_template_data_response_t *data = (fpc_cmd_template_data_response_t *)cmd;
+    if (size < sizeof(fpc_cmd_get_config_response_t))
+        return FPC_RESULT_INVALID_PARAM;
 
-    if (size < sizeof(fpc_cmd_template_data_response_t))
-    {
-        fpc_sample_logf("CMD_PUT_TEMPLATE_DATA invalid size (%d vs %d)", size,
-                        sizeof(fpc_cmd_template_data_response_t));
-        result = FPC_RESULT_INVALID_PARAM;
-    }
+    fpc_cmd_get_config_response_t *cmd_cfg = (fpc_cmd_get_config_response_t *)cmd_hdr;
 
-    if (result == FPC_RESULT_OK)
-    {
-        // Start transfer loop
-        result = fpc_cmd_data_put_request(data->max_chunk_size);
-    }
+    if (_callbacks.on_system_config_get)
+        _callbacks.on_system_config_get(&cmd_cfg->cfg);
 
-    return result;
+    return FPC_RESULT_OK;
 }
 
-static fpc_result_t parse_cmd_data_get(fpc_cmd_hdr_t *cmd, uint16_t size)
+//--------------------------------------------------------------------------------------------
+fpc_result_t sfDevFPC2534::parseBISTCommand(fpc_cmd_hdr_t *cmd_hdr, size_t size)
 {
-    fpc_result_t result = FPC_RESULT_OK;
-    fpc_cmd_data_get_response_t *cmd_rsp = (fpc_cmd_data_get_response_t *)cmd;
+    if (size < sizeof(fpc_cmd_bist_response_t))
+        return FPC_RESULT_INVALID_PARAM;
 
-    if (transfer_session.data_buf == NULL)
-    {
-        fpc_sample_logf("CMD_DATA_GET no data buffer allocated");
-        result = FPC_RESULT_INVALID_PARAM;
-    }
+    fpc_cmd_bist_response_t *cmd_rsp = (fpc_cmd_bist_response_t *)cmd_hdr;
 
-    if (result == FPC_RESULT_OK)
-    {
-        if (size < sizeof(fpc_cmd_data_get_response_t))
-        {
-            fpc_sample_logf("CMD_DATA_GET invalid size (%d vs %d)", size, sizeof(fpc_cmd_data_get_response_t));
-            result = FPC_RESULT_INVALID_PARAM;
-        }
-    }
+    if (_callbacks.on_bist_done)
+        _callbacks.on_bist_done(cmd_rsp->test_verdict);
 
-    if (result == FPC_RESULT_OK)
-    {
-        if (size != (sizeof(fpc_cmd_data_get_response_t) + cmd_rsp->data_size))
-        {
-            fpc_sample_logf("CMD_DATA_GET invalid size, incl data (%d vs %d)", size,
-                            sizeof(fpc_cmd_data_get_response_t) + cmd_rsp->data_size);
-            result = FPC_RESULT_INVALID_PARAM;
-        }
-    }
-
-    if (result == FPC_RESULT_OK)
-    {
-        fpc_sample_logf("Data: Got %d, remaining %d", cmd_rsp->data_size, cmd_rsp->remaining_size);
-
-        memcpy(transfer_session.data_buf + transfer_session.transferred_size, cmd_rsp->data, cmd_rsp->data_size);
-
-        transfer_session.transferred_size += cmd_rsp->data_size;
-        transfer_session.remaining_size = cmd_rsp->remaining_size;
-
-        if (cmd_rsp->remaining_size > 0)
-        {
-            fpc_cmd_data_get_request();
-        }
-        else
-        {
-            fpc_sample_logf("CMD_DATA_GET done");
-            if (_callbacks.on_data_transfer_done)
-            {
-                _callbacks.on_data_transfer_done(transfer_session.data_buf, transfer_session.total_size);
-            }
-            free(transfer_session.data_buf);
-            transfer_session.data_buf = NULL;
-        }
-    }
-
-    return result;
+    return FPC_RESULT_OK;
 }
 
-static fpc_result_t parse_cmd_data_put(fpc_cmd_hdr_t *cmd, uint16_t size)
-{
-    fpc_result_t result = FPC_RESULT_OK;
-    fpc_cmd_data_put_response_t *cmd_rsp = (fpc_cmd_data_put_response_t *)cmd;
+// static fpc_result_t parse_cmd_get_template_data(fpc_cmd_hdr_t *cmd, uint16_t size)
+// {
+//     fpc_result_t result = FPC_RESULT_OK;
+//     fpc_cmd_template_data_response_t *data = (fpc_cmd_template_data_response_t *)cmd;
 
-    if (size < sizeof(fpc_cmd_data_put_response_t))
-    {
-        fpc_sample_logf("CMD_DATA_PUT invalid size (%d vs %d)", size, sizeof(fpc_cmd_data_put_response_t));
-        result = FPC_RESULT_INVALID_PARAM;
-    }
+//     if (size < sizeof(fpc_cmd_template_data_response_t))
+//     {
+//         fpc_sample_logf("CMD_GET_TEMPLATE_DATA invalid size (%d vs %d)", size,
+//                         sizeof(fpc_cmd_template_data_response_t));
+//         result = FPC_RESULT_INVALID_PARAM;
+//     }
 
-    if (result == FPC_RESULT_OK)
-    {
-        fpc_sample_logf("DATA Put Response (total put = %d)", cmd_rsp->total_received);
+//     if (result == FPC_RESULT_OK)
+//     {
+//         fpc_sample_logf("Setup Template Data Transfer. Max chunk size = %d", data->max_chunk_size);
+//         // Start transfer loop
+//         result = fpc_cmd_data_get_setup(data->total_size, data->max_chunk_size);
+//     }
 
-        if (transfer_session.remaining_size == 0)
-        {
-            fpc_sample_logf("CMD_DATA_PUT done");
-            if (_callbacks.on_data_transfer_done)
-            {
-                _callbacks.on_data_transfer_done(NULL, 0);
-            }
-        }
-        else
-        {
-            result = fpc_cmd_data_put_request(transfer_session.max_chunk_size);
-        }
-    }
+//     if (result == FPC_RESULT_OK)
+//     {
+//         result = fpc_cmd_data_get_request();
+//     }
 
-    return result;
-}
+//     return FPC_RESULT_OK;
+// }
+
+// static fpc_result_t parse_cmd_put_template_data(fpc_cmd_hdr_t *cmd, uint16_t size)
+// {
+//     fpc_result_t result = FPC_RESULT_OK;
+//     fpc_cmd_template_data_response_t *data = (fpc_cmd_template_data_response_t *)cmd;
+
+//     if (size < sizeof(fpc_cmd_template_data_response_t))
+//     {
+//         fpc_sample_logf("CMD_PUT_TEMPLATE_DATA invalid size (%d vs %d)", size,
+//                         sizeof(fpc_cmd_template_data_response_t));
+//         result = FPC_RESULT_INVALID_PARAM;
+//     }
+
+//     if (result == FPC_RESULT_OK)
+//     {
+//         // Start transfer loop
+//         result = fpc_cmd_data_put_request(data->max_chunk_size);
+//     }
+
+//     return result;
+// }
+
+// static fpc_result_t parse_cmd_data_get(fpc_cmd_hdr_t *cmd, uint16_t size)
+// {
+//     fpc_result_t result = FPC_RESULT_OK;
+//     fpc_cmd_data_get_response_t *cmd_rsp = (fpc_cmd_data_get_response_t *)cmd;
+
+//     if (transfer_session.data_buf == NULL)
+//     {
+//         fpc_sample_logf("CMD_DATA_GET no data buffer allocated");
+//         result = FPC_RESULT_INVALID_PARAM;
+//     }
+
+//     if (result == FPC_RESULT_OK)
+//     {
+//         if (size < sizeof(fpc_cmd_data_get_response_t))
+//         {
+//             fpc_sample_logf("CMD_DATA_GET invalid size (%d vs %d)", size, sizeof(fpc_cmd_data_get_response_t));
+//             result = FPC_RESULT_INVALID_PARAM;
+//         }
+//     }
+
+//     if (result == FPC_RESULT_OK)
+//     {
+//         if (size != (sizeof(fpc_cmd_data_get_response_t) + cmd_rsp->data_size))
+//         {
+//             fpc_sample_logf("CMD_DATA_GET invalid size, incl data (%d vs %d)", size,
+//                             sizeof(fpc_cmd_data_get_response_t) + cmd_rsp->data_size);
+//             result = FPC_RESULT_INVALID_PARAM;
+//         }
+//     }
+
+//     if (result == FPC_RESULT_OK)
+//     {
+//         fpc_sample_logf("Data: Got %d, remaining %d", cmd_rsp->data_size, cmd_rsp->remaining_size);
+
+//         memcpy(transfer_session.data_buf + transfer_session.transferred_size, cmd_rsp->data, cmd_rsp->data_size);
+
+//         transfer_session.transferred_size += cmd_rsp->data_size;
+//         transfer_session.remaining_size = cmd_rsp->remaining_size;
+
+//         if (cmd_rsp->remaining_size > 0)
+//         {
+//             fpc_cmd_data_get_request();
+//         }
+//         else
+//         {
+//             fpc_sample_logf("CMD_DATA_GET done");
+//             if (_callbacks.on_data_transfer_done)
+//             {
+//                 _callbacks.on_data_transfer_done(transfer_session.data_buf, transfer_session.total_size);
+//             }
+//             free(transfer_session.data_buf);
+//             transfer_session.data_buf = NULL;
+//         }
+//     }
+
+//     return result;
+// }
+
+// static fpc_result_t parse_cmd_data_put(fpc_cmd_hdr_t *cmd, uint16_t size)
+// {
+//     fpc_result_t result = FPC_RESULT_OK;
+//     fpc_cmd_data_put_response_t *cmd_rsp = (fpc_cmd_data_put_response_t *)cmd;
+
+//     if (size < sizeof(fpc_cmd_data_put_response_t))
+//     {
+//         fpc_sample_logf("CMD_DATA_PUT invalid size (%d vs %d)", size, sizeof(fpc_cmd_data_put_response_t));
+//         result = FPC_RESULT_INVALID_PARAM;
+//     }
+
+//     if (result == FPC_RESULT_OK)
+//     {
+//         fpc_sample_logf("DATA Put Response (total put = %d)", cmd_rsp->total_received);
+
+//         if (transfer_session.remaining_size == 0)
+//         {
+//             fpc_sample_logf("CMD_DATA_PUT done");
+//             if (_callbacks.on_data_transfer_done)
+//             {
+//                 _callbacks.on_data_transfer_done(NULL, 0);
+//             }
+//         }
+//         else
+//         {
+//             result = fpc_cmd_data_put_request(transfer_session.max_chunk_size);
+//         }
+//     }
+
+//     return result;
+// }
 
 //--------------------------------------------------------------------------------------------
 fpc_result_t sfDevFPC2534::parseCommand(uint8_t *payload, size_t size)
@@ -369,44 +315,44 @@ fpc_result_t sfDevFPC2534::parseCommand(uint8_t *payload, size_t size)
     switch (cmdHeader->cmd_id)
     {
     case CMD_STATUS:
-        return parse_cmd_status(cmd_hdr, size);
+        return parseStatusCommand(cmd_hdr, size);
         break;
     case CMD_VERSION:
-        return parse_cmd_version(cmd_hdr, size);
+        return parseVersionCommand(cmd_hdr, size);
         break;
     case CMD_ENROLL:
-        return parse_cmd_enroll_status(cmd_hdr, size);
+        return parseEndrollStatusCommand(cmd_hdr, size);
         break;
     case CMD_IDENTIFY:
-        return parse_cmd_identify(cmd_hdr, size);
+        return parseIdentifyCommand(cmd_hdr, size);
         break;
     case CMD_LIST_TEMPLATES:
-        return parse_cmd_list_templates(cmd_hdr, size);
+        return parseListTemplatesCommand(cmd_hdr, size);
         break;
     case CMD_NAVIGATION:
-        return parse_cmd_navigation_event(cmd_hdr, size);
+        return parseNavigationEventCommand(cmd_hdr, size);
         break;
     case CMD_GPIO_CONTROL:
-        return parse_cmd_gpio_control(cmd_hdr, size);
+        return parseGPIOControlCommand(cmd_hdr, size);
         break;
     case CMD_GET_SYSTEM_CONFIG:
-        return parse_cmd_get_system_config(cmd_hdr, size);
+        return parseGetSystemConfigCommand(cmd_hdr, size);
         break;
     case CMD_BIST:
-        return parse_cmd_bist(cmd_hdr, size);
+        return parseBISTCommand(cmd_hdr, size);
         break;
-    case CMD_GET_TEMPLATE_DATA:
-        return parse_cmd_get_template_data(cmd_hdr, size);
-        break;
-    case CMD_PUT_TEMPLATE_DATA:
-        return parse_cmd_put_template_data(cmd_hdr, size);
-        break;
-    case CMD_DATA_GET:
-        return parse_cmd_data_get(cmd_hdr, size);
-        break;
-    case CMD_DATA_PUT:
-        return parse_cmd_data_put(cmd_hdr, size);
-        break;
+    // case CMD_GET_TEMPLATE_DATA:
+    //     return parse_cmd_get_template_data(cmd_hdr, size);
+    //     break;
+    // case CMD_PUT_TEMPLATE_DATA:
+    //     return parse_cmd_put_template_data(cmd_hdr, size);
+    //     break;
+    // case CMD_DATA_GET:
+    //     return parse_cmd_data_get(cmd_hdr, size);
+    //     break;
+    // case CMD_DATA_PUT:
+    //     return parse_cmd_data_put(cmd_hdr, size);
+    //     break;
     default:
         return FPC_RESULT_INVALID_PARAM;
         break;
