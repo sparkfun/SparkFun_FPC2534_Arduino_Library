@@ -65,13 +65,13 @@ fpc_result_t sfDevFPC2534::requestEnroll(fpc_id_type_t *id)
     return sendCommand((fpc_cmd_hdr_t &)cmd, sizeof(fpc_cmd_enroll_request_t));
 }
 //--------------------------------------------------------------------------------------------
-fpc_result_t sfDevFPC2534::requestIdentify(fpc_id_type_t *id, uint16_t tag)
+fpc_result_t sfDevFPC2534::requestIdentify(fpc_id_type_t &id, uint16_t tag)
 {
-    if (id == nullptr || (id->type != ID_TYPE_SPECIFIED && id->type != ID_TYPE_ALL))
+    if (id.type != ID_TYPE_SPECIFIED && id.type != ID_TYPE_ALL)
         return FPC_RESULT_INVALID_PARAM;
 
     fpc_cmd_identify_request_t cmd = {
-        .cmd = {.cmd_id = CMD_IDENTIFY, .type = FPC_FRAME_TYPE_CMD_REQUEST}, .tpl_id = *id, .tag = tag};
+        .cmd = {.cmd_id = CMD_IDENTIFY, .type = FPC_FRAME_TYPE_CMD_REQUEST}, .tpl_id = id, .tag = tag};
 
     return sendCommand((fpc_cmd_hdr_t &)cmd, sizeof(fpc_cmd_identify_request_t));
 }

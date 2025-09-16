@@ -71,7 +71,7 @@ class sfDevFPC2534
      *
      * @return Result Code
      */
-    fpc_result_t requestIdentify(fpc_id_type_t *id, uint16_t tag);
+    fpc_result_t requestIdentify(fpc_id_type_t &id, uint16_t tag);
 
     /**
      * @brief Populate and transfer a CMD_ABORT request.
