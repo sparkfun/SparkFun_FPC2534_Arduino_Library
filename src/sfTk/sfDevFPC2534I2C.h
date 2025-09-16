@@ -16,7 +16,10 @@
 #include "sfDevFPC2534IComm.h"
 #include <Arduino.h>
 
-// Define an interface to peform the needed read actions for the I2C protocol - this is needed since
+// The default I2C address for the FPC2534
+const uint8_t kFPC2534DefaultAddress = 0x24;
+
+// Define an interface to perform the needed read actions for the I2C protocol - this is needed since
 // the FPC2534 uses a custom I2C read protocol that the standard Arduino Wire library does not support.
 
 class sfDevFPC2534I2C_IRead
