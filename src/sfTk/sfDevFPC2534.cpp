@@ -14,6 +14,182 @@ sfDevFPC2534::sfDevFPC2534() : _comm{nullptr}, _callbacks{0}
 {
 }
 //--------------------------------------------------------------------------------------------
+// Internal send command method...
+fpc_result_t sfDevFPC2534::sendCommand(fpc_cmd_hdr_t &cmd, size_t size)
+{
+    if (_comm == nullptr)
+        return FPC_RESULT_INVALID_STATE;
+
+    // fill in a header
+    fpc_frame_hdr_t frameHeader = {0};
+    frameHeader.version = FPC_FRAME_PROTOCOL_VERSION;
+    frameHeader.type = FPC_FRAME_TYPE_CMD_REQUEST;
+    frameHeader.flags = FPC_FRAME_FLAG_SENDER_HOST;
+    frameHeader.payload_size = (uint16_t)size;
+
+    fpc_result_t rc = _comm->write((uint8_t *)&frameHeader, sizeof(fpc_frame_hdr_t));
+
+    if (rc == FPC_RESULT_OK)
+        rc = _comm->write((uint8_t *)&cmd, size);
+
+    return rc;
+}
+//--------------------------------------------------------------------------------------------
+//  Command Requests
+//--------------------------------------------------------------------------------------------
+fpc_result_t sfDevFPC2534::requestStatus(void)
+{
+    /* Status Command Request has no payload */
+    fpc_cmd_hdr_t cmd = {.cmd_id = CMD_STATUS, .type = FPC_FRAME_TYPE_CMD_REQUEST};
+
+    return sendCommand(cmd, sizeof(fpc_cmd_hdr_t));
+}
+
+//--------------------------------------------------------------------------------------------
+fpc_result_t sfDevFPC2534::requestVersion(void)
+{
+    /* Version Command Request has no payload */
+    fpc_cmd_hdr_t cmd = {.cmd_id = CMD_VERSION, .type = FPC_FRAME_TYPE_CMD_REQUEST};
+
+    return sendCommand(cmd, sizeof(fpc_cmd_hdr_t));
+}
+
+//--------------------------------------------------------------------------------------------
+fpc_result_t sfDevFPC2534::requestEnroll(fpc_id_type_t *id)
+{
+    if (id == nullptr || (id->type != ID_TYPE_SPECIFIED && id->type != ID_TYPE_GENERATE_NEW))
+        return FPC_RESULT_INVALID_PARAM;
+
+    fpc_cmd_enroll_request_t cmd = {.cmd = {.cmd_id = CMD_ENROLL, .type = FPC_FRAME_TYPE_CMD_REQUEST}, .tpl_id = *id};
+
+    return sendCommand((fpc_cmd_hdr_t &)cmd, sizeof(fpc_cmd_enroll_request_t));
+}
+//--------------------------------------------------------------------------------------------
+fpc_result_t sfDevFPC2534::requestIdentify(fpc_id_type_t *id, uint16_t tag)
+{
+    if (id == nullptr || (id->type != ID_TYPE_SPECIFIED && id->type != ID_TYPE_ALL))
+        return FPC_RESULT_INVALID_PARAM;
+
+    fpc_cmd_identify_request_t cmd = {
+        .cmd = {.cmd_id = CMD_IDENTIFY, .type = FPC_FRAME_TYPE_CMD_REQUEST}, .tpl_id = *id, .tag = tag};
+
+    return sendCommand((fpc_cmd_hdr_t &)cmd, sizeof(fpc_cmd_identify_request_t));
+}
+
+//--------------------------------------------------------------------------------------------
+fpc_result_t sfDevFPC2534::requestAbort(void)
+{
+    /* Abort Command Request has no payload */
+    fpc_cmd_hdr_t cmd = {.cmd_id = CMD_ABORT, .type = FPC_FRAME_TYPE_CMD_REQUEST};
+
+    return sendCommand(cmd, sizeof(fpc_cmd_hdr_t));
+}
+//--------------------------------------------------------------------------------------------
+fpc_result_t sfDevFPC2534::requestListTemplates(void)
+{
+    /* List Templates Command Request has no payload */
+    fpc_cmd_hdr_t cmd = {.cmd_id = CMD_LIST_TEMPLATES, .type = FPC_FRAME_TYPE_CMD_REQUEST};
+
+    return sendCommand(cmd, sizeof(fpc_cmd_hdr_t));
+}
+
+//--------------------------------------------------------------------------------------------
+fpc_result_t sfDevFPC2534::requestDeleteTemplate(fpc_id_type_t *id)
+{
+    if (id == nullptr || (id->type != ID_TYPE_SPECIFIED && id->type != ID_TYPE_ALL))
+        return FPC_RESULT_INVALID_PARAM;
+
+    fpc_cmd_enroll_request_t cmd = {.cmd = {.cmd_id = CMD_DEL_TEMPLATE, .type = FPC_FRAME_TYPE_CMD_REQUEST},
+                                    .tpl_id = *id};
+
+    return sendCommand((fpc_cmd_hdr_t &)cmd, sizeof(fpc_cmd_enroll_request_t));
+}
+//--------------------------------------------------------------------------------------------
+fpc_result_t sfDevFPC2534::sendReset(void)
+{
+    /* Reset Command Request has no payload */
+    fpc_cmd_hdr_t cmd = {.cmd_id = CMD_RESET, .type = FPC_FRAME_TYPE_CMD_REQUEST};
+
+    return sendCommand(cmd, sizeof(fpc_cmd_hdr_t));
+}
+//--------------------------------------------------------------------------------------------
+fpc_result_t sfDevFPC2534::startNavigationMode(uint8_t orientation)
+{
+    if (orientation > 3)
+        return FPC_RESULT_INVALID_PARAM;
+
+    fpc_cmd_navigation_request_t cmd = {.cmd = {.cmd_id = CMD_NAVIGATION, .type = FPC_FRAME_TYPE_CMD_REQUEST},
+                                        .config = orientation};
+
+    return sendCommand((fpc_cmd_hdr_t &)cmd, sizeof(fpc_cmd_navigation_request_t));
+}
+//--------------------------------------------------------------------------------------------
+fpc_result_t sfDevFPC2534::startBuiltInSelfTest(void)
+{
+    /* BIST Command Request has no payload */
+    fpc_cmd_hdr_t cmd = {.cmd_id = CMD_BIST, .type = FPC_FRAME_TYPE_CMD_REQUEST};
+
+    return sendCommand(cmd, sizeof(fpc_cmd_hdr_t));
+}
+//--------------------------------------------------------------------------------------------
+fpc_result_t sfDevFPC2534::requestSetGPIO(uint8_t pin, uint8_t mode, uint8_t state)
+{
+    if (mode > GPIO_CONTROL_MODE_INPUT_PULL_DOWN || state > GPIO_CONTROL_STATE_SET)
+        return FPC_RESULT_INVALID_PARAM;
+
+    fpc_cmd_pinctrl_gpio_request_t cmd = {.cmd = {.cmd_id = CMD_GPIO_CONTROL, .type = FPC_FRAME_TYPE_CMD_REQUEST},
+                                          .sub_cmd = GPIO_CONTROL_SUB_CMD_SET,
+                                          .pin = pin,
+                                          .mode = mode,
+                                          .state = state};
+
+    return sendCommand((fpc_cmd_hdr_t &)cmd, sizeof(fpc_cmd_pinctrl_gpio_request_t));
+}
+
+//--------------------------------------------------------------------------------------------
+fpc_result_t sfDevFPC2534::requestGetGPIO(uint8_t pin)
+{
+    fpc_cmd_pinctrl_gpio_request_t cmd = {.cmd = {.cmd_id = CMD_GPIO_CONTROL, .type = FPC_FRAME_TYPE_CMD_REQUEST},
+                                          .sub_cmd = GPIO_CONTROL_SUB_CMD_GET,
+                                          .pin = pin,
+                                          .mode = 0,
+                                          .state = 0};
+
+    return sendCommand((fpc_cmd_hdr_t &)cmd, sizeof(fpc_cmd_pinctrl_gpio_request_t));
+}
+//--------------------------------------------------------------------------------
+fpc_result_t sfDevFPC2534::setSystemConfig(fpc_system_config_t *cfg)
+{
+    if (cfg == nullptr)
+        return FPC_RESULT_INVALID_PARAM;
+
+    fpc_cmd_set_config_request_t cmd = {.cmd = {.cmd_id = CMD_SET_SYSTEM_CONFIG, .type = FPC_FRAME_TYPE_CMD_REQUEST},
+                                        .cfg = *cfg};
+
+    return sendCommand((fpc_cmd_hdr_t &)cmd, sizeof(fpc_cmd_set_config_request_t));
+}
+//--------------------------------------------------------------------------------------------
+fpc_result_t sfDevFPC2534::getSystemConfig(uint8_t type)
+{
+    if (type > FPC_SYS_CFG_TYPE_CUSTOM)
+        return FPC_RESULT_INVALID_PARAM;
+
+    fpc_cmd_get_config_request_t cmd = {.cmd = {.cmd_id = CMD_GET_SYSTEM_CONFIG, .type = FPC_FRAME_TYPE_CMD_REQUEST},
+                                        .type = type};
+    return sendCommand((fpc_cmd_hdr_t &)cmd, sizeof(fpc_cmd_get_config_request_t));
+}
+
+//--------------------------------------------------------------------------------------------
+fpc_result_t sfDevFPC2534::factoryReset(void)
+{
+    /* Factory Reset Command Request has no payload */
+    fpc_cmd_hdr_t cmd = {.cmd_id = CMD_FACTORY_RESET, .type = FPC_FRAME_TYPE_CMD_REQUEST};
+    return sendCommand(cmd, sizeof(fpc_cmd_hdr_t));
+}
+
+//--------------------------------------------------------------------------------------------
+//  Internal parse command methods
+//--------------------------------------------------------------------------------------------
 
 /* Command Responses / Events */
 
@@ -321,7 +497,7 @@ fpc_result_t sfDevFPC2534::parseCommand(uint8_t *payload, size_t size)
         return parseVersionCommand(cmd_hdr, size);
         break;
     case CMD_ENROLL:
-        return parseEndrollStatusCommand(cmd_hdr, size);
+        return parseEnrollStatusCommand(cmd_hdr, size);
         break;
     case CMD_IDENTIFY:
         return parseIdentifyCommand(cmd_hdr, size);
@@ -362,7 +538,7 @@ fpc_result_t sfDevFPC2534::parseCommand(uint8_t *payload, size_t size)
 }
 
 //--------------------------------------------------------------------------------------------
-fpc_result_t sfDevFPC2534::processNextReponse()
+fpc_result_t sfDevFPC2534::processNextResponse()
 {
     if (_comm == nullptr)
         return false;
@@ -381,7 +557,7 @@ fpc_result_t sfDevFPC2534::processNextReponse()
     // No data? No problem
     if (rc == FPC_RESULT_IO_NO_DATA)
     {
-        reponse.type = SFE_FPC_RESP_NONE;
+        // reponse.type = SFE_FPC_RESP_NONE;
         return FPC_RESULT_OK; // No data to process, just return
     }
     else if (rc != FPC_RESULT_OK)

@@ -212,13 +212,6 @@ class sfDevFPC2534
      */
     fpc_result_t factoryReset(void);
 
-    /**
-     * @brief Handle rx data and parse commands.
-     *
-     * @return Result Code
-     */
-    fpc_result_t fpc_host_sample_handle_rx_data(void);
-
     // initialize the library
     bool initialize(sfDevFPC2534IComm &comm, sfDevFPC2534Callbacks_t &callbacks)
     {
@@ -227,12 +220,13 @@ class sfDevFPC2534
         return true;
     }
 
-    fpc_result_t processNextReponse(void);
+    fpc_result_t processNextResponse(void);
 
   private:
-    parseStatusCommand(cmd_hdr, size);
+    fpc_result_t sendCommand(fpc_cmd_hdr_t &cmd, size_t size);
+    fpc_result_t parseStatusCommand(fpc_cmd_hdr_t *, size_t);
     fpc_result_t parseVersionCommand(fpc_cmd_hdr_t *, size_t);
-    fpc_result_t parseEndrollStatusCommand(fpc_cmd_hdr_t *, size_t);
+    fpc_result_t parseEnrollStatusCommand(fpc_cmd_hdr_t *, size_t);
     fpc_result_t parseIdentifyCommand(fpc_cmd_hdr_t *, size_t);
     fpc_result_t parseListTemplatesCommand(fpc_cmd_hdr_t *, size_t);
     fpc_result_t parseNavigationEventCommand(fpc_cmd_hdr_t *, size_t);
