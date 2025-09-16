@@ -12,7 +12,8 @@
 #define UART_RX 32
 #define UART_TX 14
 
-bool in_navigation_mode = false;
+uint16_t next_op_state = STATE_NAVIGATION;
+uint16_t current_state = 0;
 
 // Declare our sensor object
 SfeFPC2534I2C mySensor;
@@ -21,26 +22,51 @@ SfeFPC2534I2C mySensor;
 static void on_error(uint16_t error)
 {
     // hal_set_led_status(HAL_LED_STATUS_ERROR);
-    Serial.printf("Got error %d.\n\r", error);
+    Serial.printf("[ERROR]\t%d.\n\r", error);
 }
 
 static void on_status(uint16_t event, uint16_t state)
 {
-    if (!in_navigation_mode)
-    {
-        Serial.printf("Starting navigation\n\r");
-        in_navigation_mode = true;
-        fpc_result_t rc = mySensor.startNavigationMode(0);
-        if (rc != FPC_RESULT_OK)
-            Serial.printf("Failed to start navigation mode - error: %d\n\r", rc);
-    }
+
     if (event == EVENT_FINGER_LOST)
-        Serial.printf("\n\r--------------------------------------------------------------\n\r");
+    {
+        if (current_state == STATE_IDENTIFY)
+        {
+            // back to nav
+            mySensor.requestAbort();
+            next_op_state = STATE_NAVIGATION;
+        }
+    }
+    else if (next_op_state != 0 && (state & STATE_APP_FW_READY) == STATE_APP_FW_READY)
+    {
+        if (next_op_state == STATE_NAVIGATION)
+        {
+            Serial.printf("Starting navigation\n\r");
+            next_op_state = 0; // clear
+            fpc_result_t rc = mySensor.startNavigationMode(0);
+            if (rc != FPC_RESULT_OK)
+                Serial.printf("Failed to start navigation mode - error: %d\n\r", rc);
+            else
+                current_state = STATE_NAVIGATION;
+        }
+        else if (next_op_state == STATE_IDENTIFY)
+        {
+            Serial.printf("Starting identify\n\r");
+            fpc_id_type_t id_type = {ID_TYPE_ALL, 0};
+            fpc_result_t rc = mySensor.requestIdentify(id_type, 0);
+            if (rc != FPC_RESULT_OK)
+                Serial.printf("Failed to start identify - error: %d\n\r", rc);
+            else
+                current_state = STATE_IDENTIFY;
+            next_op_state = 0; // clear
+        }
+    }
+    Serial.printf("[STATUS]\tEvent: %d, State: 0x%04X\n\r", event, state);
 }
 
 static void on_version(char *version)
 {
-    Serial.printf("Version: %s\n\r", version);
+    Serial.printf("[VERSION]\t%s\n\r", version);
 }
 
 static void on_enroll(uint8_t feedback, uint8_t samples_remaining)
@@ -49,6 +75,10 @@ static void on_enroll(uint8_t feedback, uint8_t samples_remaining)
 
 static void on_identify(int is_match, uint16_t id)
 {
+    if (is_match)
+        Serial.printf("Identify match on id %d\n\r", id);
+    else
+        Serial.printf("Identify no match\n\r");
 }
 
 static void on_list_templates(int num_templates, uint16_t *template_ids)
@@ -75,11 +105,18 @@ static void on_navigation(int gesture)
     case CMD_NAV_EVENT_LEFT:
         Serial.printf("LEFT\n\r");
         break;
-    case CMD_NAV_EVENT_PRESS:
-        Serial.printf("PRESS\n\r");
+    case CMD_NAV_EVENT_PRESS: {
+        // Serial.printf("PRESS\n\r");
+        Serial.printf("PRESS ->{Check Identify}\n\r");
+        next_op_state = STATE_IDENTIFY;
+        // change modes - abort
+        mySensor.requestAbort();
+
         break;
+    }
     case CMD_NAV_EVENT_LONG_PRESS:
-        Serial.printf("LONG PRESS\n\r");
+        Serial.printf("LONG PRESS ->{Get Version}\n\r");
+        mySensor.requestVersion();
         break;
     default:
         Serial.printf("UNKNOWN\n\r");
