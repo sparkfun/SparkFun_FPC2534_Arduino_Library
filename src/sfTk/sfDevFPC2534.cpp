@@ -486,8 +486,6 @@ fpc_result_t sfDevFPC2534::parseCommand(uint8_t *payload, size_t size)
     if (cmdHeader->type != FPC_FRAME_TYPE_CMD_EVENT && cmdHeader->type != FPC_FRAME_TYPE_CMD_RESPONSE)
         return FPC_RESULT_INVALID_PARAM;
 
-    // fill in the reponse structure
-    size_t commandsize = 0;
     switch (cmdHeader->cmd_id)
     {
     case CMD_STATUS:
@@ -548,8 +546,6 @@ fpc_result_t sfDevFPC2534::processNextResponse()
         return false;
 
     fpc_frame_hdr_t frameHeader;
-    uint8_t *frame_payload_buffer = NULL;
-    uint8_t *frame_payload = NULL;
 
     /* Step 1: Read Frame Header */
     fpc_result_t rc = _comm->read((uint8_t *)&frameHeader, sizeof(fpc_frame_hdr_t));
@@ -557,7 +553,7 @@ fpc_result_t sfDevFPC2534::processNextResponse()
     // No data? No problem
     if (rc == FPC_RESULT_IO_NO_DATA)
     {
-        // reponse.type = SFE_FPC_RESP_NONE;
+        // response.type = SFE_FPC_RESP_NONE;
         return FPC_RESULT_OK; // No data to process, just return
     }
     else if (rc != FPC_RESULT_OK)
@@ -577,5 +573,5 @@ fpc_result_t sfDevFPC2534::processNextResponse()
     if (rc != FPC_RESULT_OK)
         return rc;
 
-    return parseCommand(frame_payload, frameHeader.payload_size);
+    return parseCommand(framePayload, frameHeader.payload_size);
 }

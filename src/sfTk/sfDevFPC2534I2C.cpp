@@ -37,11 +37,16 @@ sfDevFPC2534I2C::sfDevFPC2534I2C() : _i2cAddress(0), _i2cPort(nullptr), _i2cBusN
 //--------------------------------------------------------------------------------------------
 bool sfDevFPC2534I2C::initialize(uint8_t address, TwoWire &wirePort, uint8_t i2cBusNumber, uint32_t interruptPin)
 {
+    // do we have a i2c helper ?
+    if (__readHelper == nullptr)
+        return false;
+
+    __readHelper->initialize(i2cBusNumber);
     _i2cAddress = address;
     _i2cPort = &wirePort;
     _i2cBusNumber = i2cBusNumber;
 
-    // Setup the interrupt hanldler
+    // Setup the interrupt handler
     pinMode(interruptPin, INPUT);
     attachInterrupt(interruptPin, the_isr_cb, RISING);
 
@@ -108,6 +113,7 @@ uint16_t sfDevFPC2534I2C::read(uint8_t *data, size_t len)
     {
         // read in the packet size.
         _dataLength = __readHelper->readTransferSize(_i2cAddress);
+
         // Serial.printf("I2C read Packet Size - data size: %d\n\r", (int)rx_buf_size);
         if (_dataLength == 0)
             return FPC_RESULT_FAILURE;

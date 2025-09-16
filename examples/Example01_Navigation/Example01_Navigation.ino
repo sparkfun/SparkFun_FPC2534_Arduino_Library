@@ -102,7 +102,7 @@ void reset_sensor(void)
     digitalWrite(RST_PIN, LOW);  // Set reset pin low
     delay(10);                   // Wait for 10 ms
     digitalWrite(RST_PIN, HIGH); // Set reset pin high
-    delay(150);                  // Wait for 100 ms to allow the sensor to reset
+    delay(150);                  // Wait for sensor to initialize
 }
 
 void setup()
@@ -121,20 +121,33 @@ void setup()
     // Initialize the I2C communication
     Wire.begin();
 
+    // Reset the sensor to ensure it's in a known state - by default this also triggers the
+    // sensor to send a status message
+    reset_sensor();
+    // delay(1000);
+    Wire.beginTransmission(kFPC2534DefaultAddress);
+    if (Wire.endTransmission() != 0)
+    {
+        Serial.println("Touch Sensor not found on I2C bus. HALT");
+        while (1)
+        {
+            delay(1000); // Wait indefinitely if device is not found
+        }
+    }
+    else
+        Serial.println("Touch Sensor found on I2C bus.");
+
     // Initialize the sensor
     if (!mySensor.begin(kFPC2534DefaultAddress, Wire, 0, IRQ_PIN))
     {
         Serial.println("FPC2534 not found. Check wiring. HALT.");
         while (1)
-            ;
+            delay(1000);
     }
-    Serial.println("FPC2534 found.");
+    Serial.println("FPC2534 initialized.");
 
     // set the callbacks for the sensor library to call
     mySensor.setCallbacks(cmd_cb);
-
-    // Reset the sensor to ensure it's in a known state - by default this also triggers the
-    // sensor to send a status message
     reset_sensor();
 
     Serial.println("Fingerprint system initialized.");
