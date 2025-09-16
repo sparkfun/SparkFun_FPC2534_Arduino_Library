@@ -10,13 +10,13 @@
 
 #pragma once
 
-#include "sfDevFPC2534I2C.h
+#include "sfDevFPC2534I2C.h"
 // ESP32 implementation for the FPC2534 I2C communication class - read protocol.
 
 class sfDevFPC2534I2C_ESP32 : public sfDevFPC2534I2C_IRead
 {
   public:
-    sfDevFPC2534I2C_ESP32() : _i2cBusNumber{0}, _isInitialized{false}, _pendingStop{false}, _timeoutMillis{50}
+    sfDevFPC2534I2C_ESP32() : _i2cBusNumber{0}, _isInitialized{false}, _pendingStop{false}, _timeOutMillis{50}
     {
     }
     void initialize(uint8_t i2cBusNumber)
@@ -33,4 +33,4 @@ class sfDevFPC2534I2C_ESP32 : public sfDevFPC2534I2C_IRead
     bool _isInitialized;
     bool _pendingStop;
     uint16_t _timeOutMillis;
-}
+};

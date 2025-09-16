@@ -13,9 +13,10 @@
 // from the FPC SDK
 #include "fpc_api.h"
 
-#include "sfDevFPC2534IComm.h"
 #include <Arduino.h>
+#include <Wire.h>
 
+#include "sfDevFPC2534IComm.h"
 // The default I2C address for the FPC2534
 const uint8_t kFPC2534DefaultAddress = 0x24;
 
@@ -28,7 +29,7 @@ class sfDevFPC2534I2C_IRead
     virtual void initialize(uint8_t i2cBusNumber) = 0;
     virtual uint16_t readPayload(size_t len, uint8_t *data) = 0;
     virtual uint16_t readTransferSize(uint8_t device_address) = 0;
-}
+};
 
 // i2c impl for the FPC2534 communication class
 
@@ -36,7 +37,7 @@ class sfDevFPC2534I2C : public sfDevFPC2534IComm
 {
   public:
     sfDevFPC2534I2C();
-    bool initialize(uint8_t address, Wire &wirePort = Wire, uint8_t i2cBusNumber, uint32_t interruptPin);
+    bool initialize(uint8_t address, TwoWire &wirePort, uint8_t i2cBusNumber, uint32_t interruptPin);
     bool dataAvailable();
     void clearData();
     uint16_t write(const uint8_t *data, size_t len);

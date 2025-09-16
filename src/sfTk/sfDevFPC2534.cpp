@@ -18,7 +18,7 @@ sfDevFPC2534::sfDevFPC2534() : _comm{nullptr}, _callbacks{0}
 fpc_result_t sfDevFPC2534::sendCommand(fpc_cmd_hdr_t &cmd, size_t size)
 {
     if (_comm == nullptr)
-        return FPC_RESULT_INVALID_STATE;
+        return FPC_RESULT_WRONG_STATE;
 
     // fill in a header
     fpc_frame_hdr_t frameHeader = {0};
@@ -99,7 +99,7 @@ fpc_result_t sfDevFPC2534::requestDeleteTemplate(fpc_id_type_t *id)
     if (id == nullptr || (id->type != ID_TYPE_SPECIFIED && id->type != ID_TYPE_ALL))
         return FPC_RESULT_INVALID_PARAM;
 
-    fpc_cmd_enroll_request_t cmd = {.cmd = {.cmd_id = CMD_DEL_TEMPLATE, .type = FPC_FRAME_TYPE_CMD_REQUEST},
+    fpc_cmd_enroll_request_t cmd = {.cmd = {.cmd_id = CMD_DELETE_TEMPLATE, .type = FPC_FRAME_TYPE_CMD_REQUEST},
                                     .tpl_id = *id};
 
     return sendCommand((fpc_cmd_hdr_t &)cmd, sizeof(fpc_cmd_enroll_request_t));
@@ -169,13 +169,13 @@ fpc_result_t sfDevFPC2534::setSystemConfig(fpc_system_config_t *cfg)
     return sendCommand((fpc_cmd_hdr_t &)cmd, sizeof(fpc_cmd_set_config_request_t));
 }
 //--------------------------------------------------------------------------------------------
-fpc_result_t sfDevFPC2534::getSystemConfig(uint8_t type)
+fpc_result_t sfDevFPC2534::requestGetSystemConfig(uint8_t type)
 {
     if (type > FPC_SYS_CFG_TYPE_CUSTOM)
         return FPC_RESULT_INVALID_PARAM;
 
     fpc_cmd_get_config_request_t cmd = {.cmd = {.cmd_id = CMD_GET_SYSTEM_CONFIG, .type = FPC_FRAME_TYPE_CMD_REQUEST},
-                                        .type = type};
+                                        .config_type = type};
     return sendCommand((fpc_cmd_hdr_t &)cmd, sizeof(fpc_cmd_get_config_request_t));
 }
 
@@ -208,7 +208,7 @@ fpc_result_t sfDevFPC2534::parseStatusCommand(fpc_cmd_hdr_t *cmd_hdr, size_t siz
     // }
     // else
     // {
-    use_secure_interface = false;
+    // use_secure_interface = false;
     // }
 
     if ((status->app_fail_code != 0) && _callbacks.on_error)
@@ -491,43 +491,43 @@ fpc_result_t sfDevFPC2534::parseCommand(uint8_t *payload, size_t size)
     switch (cmdHeader->cmd_id)
     {
     case CMD_STATUS:
-        return parseStatusCommand(cmd_hdr, size);
+        return parseStatusCommand(cmdHeader, size);
         break;
     case CMD_VERSION:
-        return parseVersionCommand(cmd_hdr, size);
+        return parseVersionCommand(cmdHeader, size);
         break;
     case CMD_ENROLL:
-        return parseEnrollStatusCommand(cmd_hdr, size);
+        return parseEnrollStatusCommand(cmdHeader, size);
         break;
     case CMD_IDENTIFY:
-        return parseIdentifyCommand(cmd_hdr, size);
+        return parseIdentifyCommand(cmdHeader, size);
         break;
     case CMD_LIST_TEMPLATES:
-        return parseListTemplatesCommand(cmd_hdr, size);
+        return parseListTemplatesCommand(cmdHeader, size);
         break;
     case CMD_NAVIGATION:
-        return parseNavigationEventCommand(cmd_hdr, size);
+        return parseNavigationEventCommand(cmdHeader, size);
         break;
     case CMD_GPIO_CONTROL:
-        return parseGPIOControlCommand(cmd_hdr, size);
+        return parseGPIOControlCommand(cmdHeader, size);
         break;
     case CMD_GET_SYSTEM_CONFIG:
-        return parseGetSystemConfigCommand(cmd_hdr, size);
+        return parseGetSystemConfigCommand(cmdHeader, size);
         break;
     case CMD_BIST:
-        return parseBISTCommand(cmd_hdr, size);
+        return parseBISTCommand(cmdHeader, size);
         break;
     // case CMD_GET_TEMPLATE_DATA:
-    //     return parse_cmd_get_template_data(cmd_hdr, size);
+    //     return parse_cmd_get_template_data(cmdHeader, size);
     //     break;
     // case CMD_PUT_TEMPLATE_DATA:
-    //     return parse_cmd_put_template_data(cmd_hdr, size);
+    //     return parse_cmd_put_template_data(cmdHeader, size);
     //     break;
     // case CMD_DATA_GET:
-    //     return parse_cmd_data_get(cmd_hdr, size);
+    //     return parse_cmd_data_get(cmdHeader, size);
     //     break;
     // case CMD_DATA_PUT:
-    //     return parse_cmd_data_put(cmd_hdr, size);
+    //     return parse_cmd_data_put(cmdHeader, size);
     //     break;
     default:
         return FPC_RESULT_INVALID_PARAM;
@@ -547,12 +547,12 @@ fpc_result_t sfDevFPC2534::processNextResponse()
     if (!_comm->dataAvailable())
         return false;
 
-    fpc_frameHeader_t frameHeader;
+    fpc_frame_hdr_t frameHeader;
     uint8_t *frame_payload_buffer = NULL;
     uint8_t *frame_payload = NULL;
 
     /* Step 1: Read Frame Header */
-    fpc_result_t rc = _comm->read((uint8_t *)&frameHeader, sizeof(fpc_frameHeader_t));
+    fpc_result_t rc = _comm->read((uint8_t *)&frameHeader, sizeof(fpc_frame_hdr_t));
 
     // No data? No problem
     if (rc == FPC_RESULT_IO_NO_DATA)

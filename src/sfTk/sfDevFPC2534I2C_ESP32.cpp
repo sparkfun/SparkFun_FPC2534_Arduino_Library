@@ -50,7 +50,7 @@ end:
 
 // For the FPC data, the first two bytes are the length of the data to follow. So this method reads in
 // in the length and returns it. This method is the "start" of a FPC data read operation. It doesn't
-// stop/end the I2C read operatoinn, that is done in the readPayload() method.
+// stop/end the I2C read operation, that is done in the readPayload() method.
 //
 
 uint16_t sfDevFPC2534I2C_ESP32::readTransferSize(uint8_t device_address)
@@ -96,7 +96,7 @@ uint16_t sfDevFPC2534I2C_ESP32::readTransferSize(uint8_t device_address)
         goto end;
     }
 
-    err = i2c_master_cmd_begin((i2c_port_t)num, handle, _timeOutMillis / portTICK_PERIOD_MS);
+    err = i2c_master_cmd_begin((i2c_port_t)_i2cBusNumber, handle, _timeOutMillis / portTICK_PERIOD_MS);
 
     if (err != ESP_OK)
     {

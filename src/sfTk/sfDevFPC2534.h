@@ -213,7 +213,7 @@ class sfDevFPC2534
     fpc_result_t factoryReset(void);
 
     // for the library to actually work, user provided callbacks are needed ...
-    void setCallbacks(sfDevFPC2534Callbacks_t &callbacks)
+    void setCallbacks(const sfDevFPC2534Callbacks_t &callbacks)
     {
         _callbacks = callbacks;
     }

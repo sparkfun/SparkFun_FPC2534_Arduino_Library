@@ -10,13 +10,14 @@
 
 #include "sfDevFPC2534I2C.h"
 
-static sfDevFPC2534I2C_IRead *__readHelper = nullptr;
-
-// platform specific read helprs
+// platform specific read helpers
 #ifdef ESP32
 #include "sfDevFPC2534I2C_ESP32.h"
 static sfDevFPC2534I2C_ESP32 __esp32ReadHelper;
-__readHelper = &esp32ReadHelper;
+static sfDevFPC2534I2C_IRead *__readHelper = &__esp32ReadHelper;
+#else
+#warning "No platform specific I2C read helper defined"
+static sfDevFPC2534I2C_IRead *__readHelper = nullptr;
 #endif
 // For the ISR interrupt handler
 static volatile bool data_available = false;
@@ -29,13 +30,12 @@ static void the_isr_cb()
     data_available = true;
 }
 
-sfDevFPC2534I2C::sfDevFPC2534I2C()
-    : _i2cAddress(0), _i2cPort(nullptr), _i2cBusNumber(0), _dataAvailable(false), _dataLength(0), _dataOffset(0)
+sfDevFPC2534I2C::sfDevFPC2534I2C() : _i2cAddress(0), _i2cPort(nullptr), _i2cBusNumber(0), _dataLength(0), _dataOffset(0)
 {
 }
 
 //--------------------------------------------------------------------------------------------
-bool sfDevFPC2534I2C::initialize(uint8_t address, Wire &wirePort = Wire, uint8_t i2cBusNumber, uint32_t interruptPin)
+bool sfDevFPC2534I2C::initialize(uint8_t address, TwoWire &wirePort, uint8_t i2cBusNumber, uint32_t interruptPin)
 {
     _i2cAddress = address;
     _i2cPort = &wirePort;
@@ -43,7 +43,7 @@ bool sfDevFPC2534I2C::initialize(uint8_t address, Wire &wirePort = Wire, uint8_t
 
     // Setup the interrupt hanldler
     pinMode(interruptPin, INPUT);
-    attachInerrupt(interruptPin, the_isr_cb, RISING);
+    attachInterrupt(interruptPin, the_isr_cb, RISING);
 
     // The system starts up with a status command available and it might not be caught by the interrupt,
     // So seed this by setting data_available to true.
@@ -89,9 +89,9 @@ uint16_t sfDevFPC2534I2C::write(const uint8_t *data, size_t len)
     buffer[1] = (len >> 8) & 0xFF;
     memcpy(&buffer[2], data, len);
 
-    _i2cPort->beginTransmission(i2c_address);
+    _i2cPort->beginTransmission(_i2cAddress);
 
-    _i2cPort->write(buffer, (int)size + 2);
+    _i2cPort->write(buffer, sizeof(buffer));
 
     return _i2cPort->endTransmission() ? FPC_RESULT_FAILURE : FPC_RESULT_OK;
 }
@@ -107,7 +107,7 @@ uint16_t sfDevFPC2534I2C::read(uint8_t *data, size_t len)
     if (_dataLength == 0)
     {
         // read in the packet size.
-        _dataLength = __readHelper->readTransferSize(i2c_address);
+        _dataLength = __readHelper->readTransferSize(_i2cAddress);
         // Serial.printf("I2C read Packet Size - data size: %d\n\r", (int)rx_buf_size);
         if (_dataLength == 0)
             return FPC_RESULT_FAILURE;

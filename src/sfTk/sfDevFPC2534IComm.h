@@ -10,6 +10,7 @@
 
 #pragma once
 
+#include <stddef.h>
 #include <stdint.h>
 
 // Define the communication interface for the FPC2534 fingerprint sensor library
