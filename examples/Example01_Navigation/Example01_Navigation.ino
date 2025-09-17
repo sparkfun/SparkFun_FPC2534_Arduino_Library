@@ -197,7 +197,7 @@ void loop()
     fpc_result_t rc = mySensor.processNextResponse();
     if (rc != FPC_RESULT_OK && rc != FPC_PENDING_OPERATION)
     {
-        Serial.printf("Error processing response: %d\n\r", rc);
+        Serial.printf("[ERROR] Processing Error: %d\n\r", rc);
     }
 
     delay(200);
