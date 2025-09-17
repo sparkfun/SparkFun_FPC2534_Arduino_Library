@@ -30,7 +30,7 @@ static void the_isr_cb()
     data_available = true;
 }
 
-sfDevFPC2534I2C::sfDevFPC2534I2C() : _i2cAddress(0), _i2cPort(nullptr), _i2cBusNumber(0), _dataLength(0), _dataOffset(0)
+sfDevFPC2534I2C::sfDevFPC2534I2C() : _i2cAddress{0}, _i2cPort{nullptr}, _i2cBusNumber{0}, _dataLength{0}, _dataOffset{0}
 {
 }
 
