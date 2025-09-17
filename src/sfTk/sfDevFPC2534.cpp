@@ -559,6 +559,8 @@ fpc_result_t sfDevFPC2534::processNextResponse()
     else if (rc != FPC_RESULT_OK)
         return rc;
 
+    Serial.printf("Frame Header: ver 0x%04X, type 0x%02X, flags 0x%04X, payload size %d\n\r", frameHeader.version,
+                  frameHeader.type, frameHeader.flags, frameHeader.payload_size);
     // Sanity check of the header...
     if (frameHeader.version != FPC_FRAME_PROTOCOL_VERSION ||
         ((frameHeader.flags & FPC_FRAME_FLAG_SENDER_FW_APP) == 0) ||
