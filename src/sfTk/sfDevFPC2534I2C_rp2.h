@@ -20,12 +20,34 @@ class sfDevFPC2534I2C_Helper : public sfDevFPC2534I2C_IRead
 {
   public:
     sfDevFPC2534I2C_Helper()
-        : _device_address{0}, _i2cBusNumber{0}, _isInitialized{false}, _pendingStop{false}, _timeOutMillis{5000}
+        : _device_address{0}, _i2cPort{nullptr}, _isInitialized{false}, _pendingStop{false}, _timeOutMillis{5000}
     {
     }
     void initialize(uint8_t i2cBusNumber)
     {
-        _i2cBusNumber = i2cBusNumber;
+        if (i2cBusNumber == 0)
+        {
+            // is a port defined?
+#if defined(__WIRE0_DEVICE)
+            _i2cPort = __WIRE0_DEVICE;
+#else
+            _i2cPort = i2c0;
+#endif
+        }
+        else if (i2cBusNumber == 1)
+        {
+            // is a port defined?
+#if defined(__WIRE1_DEVICE)
+            _i2cPort = __WIRE1_DEVICE;
+#else
+            _i2cPort = i2c1;
+#endif
+        }
+        else
+        {
+            // invalid bus number - for now default to i2c0
+            _i2cPort = i2c0;
+        }
         _isInitialized = true;
         _pendingStop = false;
     }
@@ -39,11 +61,12 @@ class sfDevFPC2534I2C_Helper : public sfDevFPC2534I2C_IRead
         if (!_isInitialized)
             return 0;
 
+        // Seince we want to continue the read operation and not restart, set the restart_on_next flag to false.
         bool restart0 = i2c1->restart_on_next;
 
         i2c1->restart_on_next = false;
-        int rc = i2c_read_blocking_until(__WIRE0_DEVICE, _device_address, data, len, false,
-                                         make_timeout_time_ms(_timeOutMillis));
+        int rc =
+            i2c_read_blocking_until(_i2cPort, _device_address, data, len, false, make_timeout_time_ms(_timeOutMillis));
         i2c1->restart_on_next = restart0;
         _pendingStop = false;
 
@@ -64,14 +87,11 @@ class sfDevFPC2534I2C_Helper : public sfDevFPC2534I2C_IRead
 
         _device_address = device_address;
         uint16_t theSize = 0;
-        int rc = i2c_read_blocking_until(__WIRE0_DEVICE, device_address, (uint8_t *)&theSize, sizeof(theSize), true,
+        int rc = i2c_read_blocking_until(_i2cPort, device_address, (uint8_t *)&theSize, sizeof(theSize), true,
                                          make_timeout_time_ms(_timeOutMillis));
 
         if (rc == PICO_ERROR_GENERIC || rc == PICO_ERROR_TIMEOUT)
-        {
-
             theSize = 0;
-        }
         else
             _pendingStop = true;
 
@@ -80,7 +100,7 @@ class sfDevFPC2534I2C_Helper : public sfDevFPC2534I2C_IRead
 
   private:
     uint8_t _device_address;
-    uint8_t _i2cBusNumber;
+    i2c_inst_t *_i2cPort;
     bool _isInitialized;
     bool _pendingStop;
     uint16_t _timeOutMillis;
