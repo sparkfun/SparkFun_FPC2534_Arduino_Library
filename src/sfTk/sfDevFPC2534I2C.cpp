@@ -17,6 +17,10 @@
 static sfDevFPC2534I2C_Helper __esp32ReadHelper;
 static sfDevFPC2534I2C_IRead *__readHelper = &__esp32ReadHelper;
 
+#elif defined(ARDUINO_ARCH_RP2040)
+#include "sfDevFPC2534I2C_rp2.h"
+static sfDevFPC2534I2C_Helper __rp2040ReadHelper;
+static sfDevFPC2534I2C_IRead *__readHelper = &__rp2040ReadHelper;
 #else
 
 #warning "No platform specific I2C read helper defined"
