@@ -6,8 +6,12 @@
 #include "SparkFun_FPC2534.h"
 
 // esp32 thing plus
-#define IRQ_PIN 16
-#define RST_PIN 21
+// #define IRQ_PIN 16
+// #define RST_PIN 21
+
+// esp32 thing plus C
+#define IRQ_PIN 32
+#define RST_PIN 14
 
 #define UART_RX 32
 #define UART_TX 14
@@ -41,7 +45,7 @@ static void on_status(uint16_t event, uint16_t state)
     {
         if (next_op_state == STATE_NAVIGATION)
         {
-            Serial.printf("Starting navigation\n\r");
+            Serial.printf("[SET MODE]\tNAVIGATION\n\r");
             next_op_state = 0; // clear
             fpc_result_t rc = mySensor.startNavigationMode(0);
             if (rc != FPC_RESULT_OK)
@@ -51,7 +55,7 @@ static void on_status(uint16_t event, uint16_t state)
         }
         else if (next_op_state == STATE_IDENTIFY)
         {
-            Serial.printf("Starting identify\n\r");
+            Serial.printf("[SET MODE]\tIDENTIFY\n\r");
             fpc_id_type_t id_type = {ID_TYPE_ALL, 0};
             fpc_result_t rc = mySensor.requestIdentify(id_type, 0);
             if (rc != FPC_RESULT_OK)
@@ -75,10 +79,11 @@ static void on_enroll(uint8_t feedback, uint8_t samples_remaining)
 
 static void on_identify(int is_match, uint16_t id)
 {
+    Serial.printf("[IDENTIFY]\t");
     if (is_match)
-        Serial.printf("Identify match on id %d\n\r", id);
+        Serial.printf("MATCH - id: %d\n\r", id);
     else
-        Serial.printf("Identify no match\n\r");
+        Serial.printf("NO MATCH\n\r");
 }
 
 static void on_list_templates(int num_templates, uint16_t *template_ids)
@@ -107,7 +112,7 @@ static void on_navigation(int gesture)
         break;
     case CMD_NAV_EVENT_PRESS: {
         // Serial.printf("PRESS\n\r");
-        Serial.printf("PRESS ->{Check Identify}\n\r");
+        Serial.printf("PRESS ->{Identify}\n\r");
         next_op_state = STATE_IDENTIFY;
         // change modes - abort
         mySensor.requestAbort();
@@ -139,7 +144,7 @@ void reset_sensor(void)
     digitalWrite(RST_PIN, LOW);  // Set reset pin low
     delay(10);                   // Wait for 10 ms
     digitalWrite(RST_PIN, HIGH); // Set reset pin high
-    delay(150);                  // Wait for sensor to initialize
+    delay(250);                  // Wait for sensor to initialize
 }
 
 void setup()
