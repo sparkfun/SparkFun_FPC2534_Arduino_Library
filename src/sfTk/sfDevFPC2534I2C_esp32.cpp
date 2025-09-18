@@ -8,12 +8,12 @@
  *---------------------------------------------------------------------------------
  */
 
-#include "sfDevFPC2534I2C_ESP32.h"
+#include "sfDevFPC2534I2C_esp32.h"
 
 #ifdef ESP32
 #include "driver/i2c.h"
 
-uint16_t sfDevFPC2534I2C_ESP32::readPayload(size_t len, uint8_t *inbuffer)
+uint16_t sfDevFPC2534I2C_Helper::readPayload(size_t len, uint8_t *inbuffer)
 {
 
     if (!_isInitialized)
@@ -53,7 +53,7 @@ end:
 // stop/end the I2C read operation, that is done in the readPayload() method.
 //
 
-uint16_t sfDevFPC2534I2C_ESP32::readTransferSize(uint8_t device_address)
+uint16_t sfDevFPC2534I2C_Helper::readTransferSize(uint8_t device_address)
 {
     if (!_isInitialized)
         return 0;

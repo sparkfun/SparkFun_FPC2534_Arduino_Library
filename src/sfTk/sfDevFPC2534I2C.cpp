@@ -10,15 +10,20 @@
 
 #include "sfDevFPC2534I2C.h"
 
-// platform specific read helpers
-#ifdef ESP32
-#include "sfDevFPC2534I2C_ESP32.h"
-static sfDevFPC2534I2C_ESP32 __esp32ReadHelper;
+// platform specific read helpers - a system we support?
+#if defined(ESP32)
+
+#include "sfDevFPC2534I2C_esp32.h"
+static sfDevFPC2534I2C_Helper __esp32ReadHelper;
 static sfDevFPC2534I2C_IRead *__readHelper = &__esp32ReadHelper;
+
 #else
+
 #warning "No platform specific I2C read helper defined"
 static sfDevFPC2534I2C_IRead *__readHelper = nullptr;
+
 #endif
+
 // For the ISR interrupt handler
 static volatile bool data_available = false;
 

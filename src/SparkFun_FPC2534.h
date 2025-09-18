@@ -4,6 +4,7 @@
 
 #include "sfTk/sfDevFPC2534.h"
 #include "sfTk/sfDevFPC2534I2C.h"
+#include "sfTk/sfDevFPC2534UART.h"
 
 // Make a Arduino friendly Address define
 
@@ -20,14 +21,36 @@ class SfeFPC2534I2C : public sfDevFPC2534
                const uint32_t interruptPin = 255)
     {
 
-        if (!_theI2CBus.initialize(address, wirePort, i2cBusNumber, interruptPin))
+        if (!_commI2CBus.initialize(address, wirePort, i2cBusNumber, interruptPin))
             return false;
 
         // Okay, the bus is a go, lets initialize the base class
 
-        return sfDevFPC2534::initialize(_theI2CBus);
+        return sfDevFPC2534::initialize(_commI2CBus);
     }
 
   private:
-    sfDevFPC2534I2C _theI2CBus;
+    sfDevFPC2534I2C _commI2CBus;
+};
+
+//--------------------------------------------------------------------------------------------
+class SfeFPC2534UART : public sfDevFPC2534
+{
+  public:
+    SfeFPC2534UART()
+    {
+    }
+    bool begin(HardwareSerial &theUART)
+    {
+
+        if (!_commUART.initialize(theUART))
+            return false;
+
+        // Okay, the bus is a go, lets initialize the base class
+
+        return sfDevFPC2534::initialize(_commUART);
+    }
+
+  private:
+    sfDevFPC2534UART _commUART;
 };
