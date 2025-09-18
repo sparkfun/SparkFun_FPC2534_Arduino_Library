@@ -47,7 +47,7 @@ class sfDevFPC2534I2C_Helper : public sfDevFPC2534I2C_IRead
         if (handle == NULL)
             return 0;
 
-        err = i2c_master_read(handle, (uint8_t *)inbuffer, len, I2C_MASTER_LAST_NACK);
+        err = i2c_master_read(handle, (uint8_t *)data, len, I2C_MASTER_LAST_NACK);
         if (err != ESP_OK)
         {
             goto end;
