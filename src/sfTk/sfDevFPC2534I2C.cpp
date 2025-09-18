@@ -61,7 +61,7 @@ bool sfDevFPC2534I2C::initialize(uint8_t address, TwoWire &wirePort, uint8_t i2c
     // Note: Observation shows that if we don't read the initial status command, no
     // further data is available.
     //
-    // TODO: Users and disable this startup status message - if an issue, the user should be able to disable this
+    // TODO: Users can disable this startup status message - if an issue, the user should be able to disable this
     // initial check
     data_available = true;
 
@@ -119,7 +119,7 @@ uint16_t sfDevFPC2534I2C::read(uint8_t *data, size_t len)
         // read in the packet size.
         _dataLength = __readHelper->readTransferSize(_i2cAddress);
 
-        // Serial.printf("I2C read Packet Size - data size: %d\n\r", (int)rx_buf_size);
+        // Serial.printf("I2C read Packet Size - data size: %d\n\r", (int)_dataLength);
         if (_dataLength == 0)
             return FPC_RESULT_FAILURE;
 
