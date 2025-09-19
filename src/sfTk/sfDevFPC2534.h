@@ -32,6 +32,49 @@ typedef struct
     void (*on_data_transfer_done)(uint8_t *data, size_t size);
 } sfDevFPC2534Callbacks_t;
 
+//--------------------------------------------------------------------------------------------
+// Testing
+//--------------------------------------------------------------------------------------------
+// Define response structs
+
+typedef struct
+{
+    /** One of EVENT_* above. */
+    uint16_t event;
+    /** The current state. A combination of STATE_* defines above. */
+    uint16_t state;
+    /** Additional details of failure. */
+    uint16_t app_fail_code;
+} sfDevFPCMsgStatus_t;
+
+typedef struct
+{
+    /** 96 bits of unique ID. */
+    uint32_t mcu_unique_id[3];
+    /** FW ID. */
+    uint8_t fw_id;
+    /** Fuse Level. */
+    uint8_t fw_fuse_level;
+    /** Version String Length */
+    uint16_t version_str_len;
+    /** Version String (incl termination '\0') */
+    char version_str[64];
+} sfDevFPCMsgVersion_t;
+
+// Overall message struct/union
+
+typedef struct
+{
+    uint16_t cmd_id;
+    union {
+        sfDevFPCMsgStatus_t status;
+        sfDevFPCMsgVersion_t version;
+    } msg;
+} sfDevFPCMessage_t;
+
+//--------------------------------------------------------------------------------------------
+// End Testing
+//--------------------------------------------------------------------------------------------
 class sfDevFPC2534
 {
   public:
@@ -225,7 +268,15 @@ class sfDevFPC2534
         return true;
     }
 
+    fpc_result_t setLED(bool on);
+    fpc_result_t getVersion(sfDevFPCMsgVersion_t &ver);
+    fpc_result_t startNavigationModeNew(uint8_t orientation);
+
     fpc_result_t processNextResponse(void);
+
+    fpc_result_t getNextMessage(sfDevFPCMessage_t &msg);
+    fpc_result_t parseStatusMessage(fpc_cmd_hdr_t *cmd_hdr, size_t size, sfDevFPCMessage_t &msg);
+    fpc_result_t parseVersionMessage(fpc_cmd_hdr_t *cmd_hdr, size_t size, sfDevFPCMessage_t &msg);
 
   private:
     fpc_result_t sendCommand(fpc_cmd_hdr_t &cmd, size_t size);
@@ -239,6 +290,7 @@ class sfDevFPC2534
     fpc_result_t parseGetSystemConfigCommand(fpc_cmd_hdr_t *, size_t);
     fpc_result_t parseBISTCommand(fpc_cmd_hdr_t *, size_t);
     fpc_result_t parseCommand(uint8_t *frame_payload, size_t payload_size);
+    fpc_result_t parseMessage(uint8_t *payload, size_t size, sfDevFPCMessage_t &msg);
 
     sfDevFPC2534IComm *_comm = nullptr;
     sfDevFPC2534Callbacks_t _callbacks;

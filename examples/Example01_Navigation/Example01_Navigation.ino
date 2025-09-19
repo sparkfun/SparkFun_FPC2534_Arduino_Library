@@ -20,8 +20,11 @@
 #define UART_RX 32
 #define UART_TX 14
 
-uint16_t next_op_state = STATE_NAVIGATION;
+uint16_t next_op_state = 0;
+
 uint16_t current_state = 0;
+
+bool led_enabled = false;
 
 // Declare our sensor object
 SfeFPC2534I2C mySensor;
@@ -42,7 +45,12 @@ static void on_status(uint16_t event, uint16_t state)
         {
             // back to nav
             mySensor.requestAbort();
-            next_op_state = STATE_NAVIGATION;
+            fpc_result_t rc = mySensor.startNavigationModeNew(0);
+            if (rc != FPC_RESULT_OK)
+                Serial.printf("Failed to start navigation mode - error: %d\n\r", rc);
+            else
+                current_state = STATE_NAVIGATION;
+            // next_op_state = STATE_NAVIGATION;
         }
     }
     else if (next_op_state != 0 && (state & STATE_APP_FW_READY) == STATE_APP_FW_READY)
@@ -50,8 +58,10 @@ static void on_status(uint16_t event, uint16_t state)
         if (next_op_state == STATE_NAVIGATION)
         {
             Serial.printf("[SET MODE]\tNAVIGATION\n\r");
+            mySensor.setLED(false);
             next_op_state = 0; // clear
             fpc_result_t rc = mySensor.startNavigationMode(0);
+
             if (rc != FPC_RESULT_OK)
                 Serial.printf("Failed to start navigation mode - error: %d\n\r", rc);
             else
@@ -60,8 +70,10 @@ static void on_status(uint16_t event, uint16_t state)
         else if (next_op_state == STATE_IDENTIFY)
         {
             Serial.printf("[SET MODE]\tIDENTIFY\n\r");
+            mySensor.setLED(true);
             fpc_id_type_t id_type = {ID_TYPE_ALL, 0};
             fpc_result_t rc = mySensor.requestIdentify(id_type, 0);
+
             if (rc != FPC_RESULT_OK)
                 Serial.printf("Failed to start identify - error: %d\n\r", rc);
             else
@@ -88,6 +100,12 @@ static void on_identify(int is_match, uint16_t id)
         Serial.printf("MATCH - id: %d\n\r", id);
     else
         Serial.printf("NO MATCH\n\r");
+    // back to nav
+    fpc_result_t rc = mySensor.startNavigationModeNew(0);
+    if (rc != FPC_RESULT_OK)
+        Serial.printf("Failed to start navigation mode - error: %d\n\r", rc);
+    else
+        current_state = STATE_NAVIGATION;
 }
 
 static void on_list_templates(int num_templates, uint16_t *template_ids)
@@ -96,6 +114,7 @@ static void on_list_templates(int num_templates, uint16_t *template_ids)
 
 static void on_navigation(int gesture)
 {
+    fpc_result_t rc;
     Serial.printf("[NAVIGATION]\t");
     switch (gesture)
     {
@@ -118,15 +137,24 @@ static void on_navigation(int gesture)
         // Serial.printf("PRESS\n\r");
         Serial.printf("PRESS ->{Identify}\n\r");
         next_op_state = STATE_IDENTIFY;
+
         // change modes - abort
         mySensor.requestAbort();
 
         break;
     }
-    case CMD_NAV_EVENT_LONG_PRESS:
-        Serial.printf("LONG PRESS ->{Get Version}\n\r");
-        mySensor.requestVersion();
+    case CMD_NAV_EVENT_LONG_PRESS: {
+        Serial.printf("LONG PRESS ->{Version}\n\r");
+        // mySensor.requestVersion();
+        // turn off. the on-board LED (on GPIO 1)
+        sfDevFPCMsgVersion_t ver;
+        if (mySensor.getVersion(ver) == FPC_RESULT_OK)
+            Serial.printf("Version: %s\n\r", ver.version_str);
+        else
+            Serial.printf("Failed to get version\n\r");
+
         break;
+    }
     default:
         Serial.printf("UNKNOWN\n\r");
         break;
@@ -197,6 +225,24 @@ void setup()
     reset_sensor();
 
     Serial.println("Fingerprint system initialized.");
+
+    // When the sensor starts up, it posts a status message
+    sfDevFPCMessage_t msg;
+    fpc_result_t rc = mySensor.getNextMessage(msg);
+    if (rc == FPC_RESULT_OK && msg.cmd_id == CMD_STATUS)
+    {
+        Serial.printf("Initial Status: Event: %d, State: 0x%04X\n\r", msg.msg.status.event, msg.msg.status.state);
+    }
+    else
+    {
+        Serial.printf("Failed to get initial status: %d\n\r", rc);
+    }
+    // Now set the mode to navigation
+    rc = mySensor.startNavigationModeNew(0);
+    if (rc != FPC_RESULT_OK)
+        Serial.printf("Failed to start navigation mode - error: %d\n\r", rc);
+    else
+        current_state = STATE_NAVIGATION;
 }
 
 void loop()

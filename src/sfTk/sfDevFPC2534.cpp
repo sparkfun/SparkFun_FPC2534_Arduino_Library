@@ -578,3 +578,238 @@ fpc_result_t sfDevFPC2534::processNextResponse()
 
     return parseCommand(framePayload, frameHeader.payload_size);
 }
+
+fpc_result_t sfDevFPC2534::parseStatusMessage(fpc_cmd_hdr_t *cmd_hdr, size_t size, sfDevFPCMessage_t &msg)
+{
+
+    if (size != sizeof(fpc_cmd_status_response_t))
+        return FPC_RESULT_INVALID_PARAM;
+
+    fpc_cmd_status_response_t *status = (fpc_cmd_status_response_t *)cmd_hdr;
+    // if (status->state & STATE_SECURE_INTERFACE)
+    // {
+    //     /* The device supports secure interface. Set the flag to indicate
+    //        that the secure interface shall be used. */
+    //     use_secure_interface = true;
+    // }
+    // else
+    // {
+    // use_secure_interface = false;
+    // }
+
+    msg.cmd_id = CMD_STATUS;
+    msg.msg.status.event = status->event;
+    msg.msg.status.state = status->state;
+    msg.msg.status.app_fail_code = status->app_fail_code;
+
+    return FPC_RESULT_OK;
+}
+
+//--------------------------------------------------------------------------------------------
+fpc_result_t sfDevFPC2534::parseVersionMessage(fpc_cmd_hdr_t *cmd_hdr, size_t size, sfDevFPCMessage_t &msg)
+{
+    fpc_cmd_version_response_t *ver = (fpc_cmd_version_response_t *)cmd_hdr;
+
+    // The full size of the command must include the length of the version string (unset array)
+
+    if (size != sizeof(fpc_cmd_version_response_t) + ver->version_str_len)
+        return FPC_RESULT_INVALID_PARAM;
+
+    msg.cmd_id = CMD_VERSION;
+    strncpy(msg.msg.version.version_str, ver->version_str, sizeof(msg.msg.version.version_str));
+    msg.msg.version.version_str[sizeof(msg.msg.version.version_str) - 1] = 0; // ensure null termination
+    msg.msg.version.mcu_unique_id[0] = ver->mcu_unique_id[0];
+    msg.msg.version.mcu_unique_id[1] = ver->mcu_unique_id[1];
+    msg.msg.version.mcu_unique_id[2] = ver->mcu_unique_id[2];
+    msg.msg.version.fw_id = ver->fw_id;
+    msg.msg.version.fw_fuse_level = ver->fw_fuse_level;
+
+    return FPC_RESULT_OK;
+}
+//--------------------------------------------------------------------------------------------
+fpc_result_t sfDevFPC2534::parseMessage(uint8_t *payload, size_t size, sfDevFPCMessage_t &msg)
+{
+    if (payload == nullptr || size == 0)
+        return FPC_RESULT_INVALID_PARAM;
+
+    fpc_cmd_hdr_t *cmdHeader = (fpc_cmd_hdr_t *)payload;
+
+    // look legit?
+    if (cmdHeader->type != FPC_FRAME_TYPE_CMD_EVENT && cmdHeader->type != FPC_FRAME_TYPE_CMD_RESPONSE)
+        return FPC_RESULT_INVALID_PARAM;
+
+    switch (cmdHeader->cmd_id)
+    {
+    case CMD_STATUS:
+        return parseStatusMessage(cmdHeader, size, msg);
+        break;
+    case CMD_VERSION:
+        return parseVersionMessage(cmdHeader, size, msg);
+        break;
+    // case CMD_ENROLL:
+    //     return parseEnrollStatusCommand(cmdHeader, size);
+    //     break;
+    // case CMD_IDENTIFY:
+    //     return parseIdentifyCommand(cmdHeader, size);
+    //     break;
+    // case CMD_LIST_TEMPLATES:
+    //     return parseListTemplatesCommand(cmdHeader, size);
+    //     break;
+    // case CMD_NAVIGATION:
+    //     return parseNavigationEventCommand(cmdHeader, size);
+    //     break;
+    // case CMD_GPIO_CONTROL:
+    //     return parseGPIOControlCommand(cmdHeader, size);
+    //     break;
+    // case CMD_GET_SYSTEM_CONFIG:
+    //     return parseGetSystemConfigCommand(cmdHeader, size);
+    //     break;
+    // case CMD_BIST:
+    //     return parseBISTCommand(cmdHeader, size);
+    //     break;
+    // case CMD_GET_TEMPLATE_DATA:
+    //     return parse_cmd_get_template_data(cmdHeader, size);
+    //     break;
+    // case CMD_PUT_TEMPLATE_DATA:
+    //     return parse_cmd_put_template_data(cmdHeader, size);
+    //     break;
+    // case CMD_DATA_GET:
+    //     return parse_cmd_data_get(cmdHeader, size);
+    //     break;
+    // case CMD_DATA_PUT:
+    //     return parse_cmd_data_put(cmdHeader, size);
+    //     break;
+    default:
+        return FPC_RESULT_INVALID_PARAM;
+        break;
+    }
+
+    return FPC_RESULT_OK;
+}
+
+fpc_result_t sfDevFPC2534::getNextMessage(sfDevFPCMessage_t &msg)
+{
+    if (_comm == nullptr)
+        return FPC_RESULT_WRONG_STATE;
+
+    // Check if data is available - no data, just continue
+    if (!_comm->dataAvailable())
+        return FPC_RESULT_OK;
+
+    fpc_frame_hdr_t frameHeader;
+
+    /* Step 1: Read Frame Header */
+    fpc_result_t rc = _comm->read((uint8_t *)&frameHeader, sizeof(fpc_frame_hdr_t));
+
+    // No data? No problem
+    if (rc == FPC_RESULT_IO_NO_DATA)
+    {
+        // response.type = SFE_FPC_RESP_NONE;
+        return FPC_RESULT_OK; // No data to process, just return
+    }
+    else if (rc != FPC_RESULT_OK)
+        return rc;
+
+    // Serial.printf("Frame Header: ver 0x%04X, type 0x%02X, flags 0x%04X, payload size %d\n\r", frameHeader.version,
+    //               frameHeader.type, frameHeader.flags, frameHeader.payload_size);
+
+    // Sanity check of the header...
+    if (frameHeader.version != FPC_FRAME_PROTOCOL_VERSION ||
+        ((frameHeader.flags & FPC_FRAME_FLAG_SENDER_FW_APP) == 0) ||
+        (frameHeader.type != FPC_FRAME_TYPE_CMD_RESPONSE && frameHeader.type != FPC_FRAME_TYPE_CMD_EVENT))
+        return FPC_RESULT_IO_BAD_DATA;
+
+    // okay, lets read the payload
+    uint8_t framePayload[frameHeader.payload_size];
+
+    rc = _comm->read(framePayload, frameHeader.payload_size);
+
+    if (rc != FPC_RESULT_OK)
+        return rc;
+
+    memset(&msg, 0, sizeof(sfDevFPCMessage_t));
+    return parseMessage(framePayload, frameHeader.payload_size, msg);
+}
+
+fpc_result_t sfDevFPC2534::setLED(bool ledOn)
+{
+    if (_comm == nullptr)
+        return FPC_RESULT_WRONG_STATE;
+
+    fpc_result_t rc =
+        requestSetGPIO(1, GPIO_CONTROL_MODE_OUTPUT_PP, ledOn ? GPIO_CONTROL_STATE_SET : GPIO_CONTROL_STATE_RESET);
+
+    if (rc != FPC_RESULT_OK)
+        return rc;
+
+    // Now we need to process the response
+    delay(100); // give it a moment to respond
+    sfDevFPCMessage_t msg;
+    return getNextMessage(msg);
+
+    // return rc;
+}
+
+//--------------------------------------------------------------------------------------------
+fpc_result_t sfDevFPC2534::getVersion(sfDevFPCMsgVersion_t &ver)
+{
+    if (_comm == nullptr)
+        return FPC_RESULT_WRONG_STATE;
+
+    fpc_result_t rc = requestVersion();
+
+    if (rc != FPC_RESULT_OK)
+        return rc;
+
+    // Now we need to process the response
+    delay(100); // give it a moment to respond
+    sfDevFPCMessage_t msg;
+    rc = getNextMessage(msg);
+
+    if (rc != FPC_RESULT_OK)
+        return rc;
+
+    if (msg.cmd_id != CMD_VERSION)
+        return FPC_RESULT_IO_BAD_DATA;
+
+    ver = msg.msg.version;
+    return FPC_RESULT_OK;
+}
+//
+//--------------------------------------------------------------------------------------------
+fpc_result_t sfDevFPC2534::startNavigationModeNew(uint8_t orientation)
+{
+    int maxTries = 4;
+    if (_comm == nullptr)
+        return FPC_RESULT_WRONG_STATE;
+
+    requestAbort(); // just in case we are busy...
+    fpc_result_t rc = startNavigationMode(orientation);
+    if (rc != FPC_RESULT_OK)
+        return rc;
+
+    // Now we need to process the response
+    delay(100); // give it a moment to respond
+    sfDevFPCMessage_t msg;
+    bool inNav = false;
+    int tries = 0;
+    while (tries++ < maxTries)
+    {
+        rc = getNextMessage(msg);
+        if (rc != FPC_RESULT_OK)
+            return rc;
+        Serial.printf("Try %d: msg.cmd_id = 0x%X\r\n", tries, msg.cmd_id);
+        // if (msg.cmd_id == CMD_STATUS && (msg.msg.status.state & STATE_NAVIGATION) == STATE_NAVIGATION)
+        //     break;
+        if (msg.cmd_id == CMD_STATUS)
+        {
+            Serial.printf("Event: 0x%X, State: 0x%X, Fail Code: %d\r\n", msg.msg.status.event, msg.msg.status.state,
+                          msg.msg.status.app_fail_code);
+            if ((msg.msg.status.state & STATE_NAVIGATION) == STATE_NAVIGATION)
+                break;
+
+            delay(50);
+        }
+    }
+    return tries >= maxTries ? FPC_RESULT_TIMEOUT : FPC_RESULT_OK;
+}
