@@ -292,6 +292,8 @@ class sfDevFPC2534
     fpc_result_t parseCommand(uint8_t *frame_payload, size_t payload_size);
     fpc_result_t parseMessage(uint8_t *payload, size_t size, sfDevFPCMessage_t &msg);
 
+    fpc_result_t prepForModeChange(uint16_t mode);
+
     sfDevFPC2534IComm *_comm = nullptr;
     sfDevFPC2534Callbacks_t _callbacks;
 };

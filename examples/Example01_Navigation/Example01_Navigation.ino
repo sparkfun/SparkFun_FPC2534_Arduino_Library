@@ -114,7 +114,7 @@ static void on_list_templates(int num_templates, uint16_t *template_ids)
 
 static void on_navigation(int gesture)
 {
-    fpc_result_t rc;
+    // fpc_result_t rc;
     Serial.printf("[NAVIGATION]\t");
     switch (gesture)
     {

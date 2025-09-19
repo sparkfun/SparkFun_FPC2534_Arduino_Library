@@ -775,6 +775,44 @@ fpc_result_t sfDevFPC2534::getVersion(sfDevFPCMsgVersion_t &ver)
     ver = msg.msg.version;
     return FPC_RESULT_OK;
 }
+
+fpc_result_t sfDevFPC2534::prepForModeChange(uint16_t mode)
+{
+    if (_comm == nullptr)
+        return FPC_RESULT_WRONG_STATE;
+
+    // get status and see if we need to change modes and/or issue an abort
+    fpc_result_t rc = requestStatus();
+    if (rc != FPC_RESULT_OK)
+        return rc;
+    delay(100); // give it a moment to respond
+    sfDevFPCMessage_t msg;
+    rc = getNextMessage(msg);
+    if (rc != FPC_RESULT_OK)
+        return rc;
+    if (msg.cmd_id != CMD_STATUS)
+        return FPC_RESULT_IO_BAD_DATA;
+
+    // Is this system in the desired mode?
+    if ((msg.msg.status.state & mode) == mode)
+        return FPC_RESULT_OK; // already in the desired mode
+
+    // do we need to do an abort first?
+    if ((msg.msg.status.state & (STATE_ENROLL | STATE_IDENTIFY | STATE_NAVIGATION)) != 0)
+    {
+        rc = requestAbort();
+        if (rc != FPC_RESULT_OK)
+            return rc;
+        delay(100); // give it a moment to respond
+        rc = getNextMessage(msg);
+        if (rc != FPC_RESULT_OK)
+            return rc;
+        if (msg.cmd_id != CMD_STATUS)
+            return FPC_RESULT_IO_BAD_DATA;
+    }
+
+    return rc;
+}
 //
 //--------------------------------------------------------------------------------------------
 fpc_result_t sfDevFPC2534::startNavigationModeNew(uint8_t orientation)
@@ -791,7 +829,7 @@ fpc_result_t sfDevFPC2534::startNavigationModeNew(uint8_t orientation)
     // Now we need to process the response
     delay(100); // give it a moment to respond
     sfDevFPCMessage_t msg;
-    bool inNav = false;
+
     int tries = 0;
     while (tries++ < maxTries)
     {
