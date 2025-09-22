@@ -53,34 +53,34 @@ static void on_status(uint16_t event, uint16_t state)
             // next_op_state = STATE_NAVIGATION;
         }
     }
-    else if (next_op_state != 0 && (state & STATE_APP_FW_READY) == STATE_APP_FW_READY)
-    {
-        if (next_op_state == STATE_NAVIGATION)
-        {
-            Serial.printf("[SET MODE]\tNAVIGATION\n\r");
-            mySensor.setLED(false);
-            next_op_state = 0; // clear
-            fpc_result_t rc = mySensor.startNavigationMode(0);
+    // else if (next_op_state != 0 && (state & STATE_APP_FW_READY) == STATE_APP_FW_READY)
+    // {
+    //     if (next_op_state == STATE_NAVIGATION)
+    //     {
+    //         Serial.printf("[SET MODE]\tNAVIGATION\n\r");
+    //         mySensor.setLED(false);
+    //         next_op_state = 0; // clear
+    //         fpc_result_t rc = mySensor.startNavigationMode(0);
 
-            if (rc != FPC_RESULT_OK)
-                Serial.printf("Failed to start navigation mode - error: %d\n\r", rc);
-            else
-                current_state = STATE_NAVIGATION;
-        }
-        else if (next_op_state == STATE_IDENTIFY)
-        {
-            Serial.printf("[SET MODE]\tIDENTIFY\n\r");
-            mySensor.setLED(true);
-            fpc_id_type_t id_type = {ID_TYPE_ALL, 0};
-            fpc_result_t rc = mySensor.requestIdentify(id_type, 0);
+    //         if (rc != FPC_RESULT_OK)
+    //             Serial.printf("Failed to start navigation mode - error: %d\n\r", rc);
+    //         else
+    //             current_state = STATE_NAVIGATION;
+    //     }
+    //     else if (next_op_state == STATE_IDENTIFY)
+    //     {
+    //         Serial.printf("[SET MODE]\tIDENTIFY\n\r");
+    //         mySensor.setLED(true);
+    //         fpc_id_type_t id_type = {ID_TYPE_ALL, 0};
+    //         fpc_result_t rc = mySensor.requestIdentify(id_type, 0);
 
-            if (rc != FPC_RESULT_OK)
-                Serial.printf("Failed to start identify - error: %d\n\r", rc);
-            else
-                current_state = STATE_IDENTIFY;
-            next_op_state = 0; // clear
-        }
-    }
+    //         if (rc != FPC_RESULT_OK)
+    //             Serial.printf("Failed to start identify - error: %d\n\r", rc);
+    //         else
+    //             current_state = STATE_IDENTIFY;
+    //         next_op_state = 0; // clear
+    //     }
+    // }
     Serial.printf("[STATUS]\tEvent: %d, State: 0x%04X\n\r", event, state);
 }
 
@@ -136,10 +136,11 @@ static void on_navigation(int gesture)
     case CMD_NAV_EVENT_PRESS: {
         // Serial.printf("PRESS\n\r");
         Serial.printf("PRESS ->{Identify}\n\r");
-        next_op_state = STATE_IDENTIFY;
+        mySensor.startIdentifyMode();
+        // next_op_state = STATE_IDENTIFY;
 
         // change modes - abort
-        mySensor.requestAbort();
+        // mySensor.requestAbort();
 
         break;
     }

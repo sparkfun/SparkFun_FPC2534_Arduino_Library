@@ -10,7 +10,7 @@
 
 #include "sfDevFPC2534.h"
 
-sfDevFPC2534::sfDevFPC2534() : _comm{nullptr}, _callbacks{0}
+sfDevFPC2534::sfDevFPC2534() : _comm{nullptr}, _callbacks{0}, _bDeviceReady{false}, _bFingerDown{false}, _currentMode{0}
 {
 }
 //--------------------------------------------------------------------------------------------
@@ -200,6 +200,11 @@ fpc_result_t sfDevFPC2534::parseStatusCommand(fpc_cmd_hdr_t *cmd_hdr, size_t siz
         return FPC_RESULT_INVALID_PARAM;
 
     fpc_cmd_status_response_t *status = (fpc_cmd_status_response_t *)cmd_hdr;
+
+    // set our internal state flags
+    _bDeviceReady = (status->state & STATE_APP_FW_READY) == STATE_APP_FW_READY;
+    _bFingerDown = (status->state & STATE_FINGER_DOWN) == STATE_FINGER_DOWN;
+    _currentMode = status->state & (STATE_ENROLL | STATE_IDENTIFY | STATE_NAVIGATION);
     // if (status->state & STATE_SECURE_INTERFACE)
     // {
     //     /* The device supports secure interface. Set the flag to indicate
@@ -596,7 +601,10 @@ fpc_result_t sfDevFPC2534::parseStatusMessage(fpc_cmd_hdr_t *cmd_hdr, size_t siz
     // {
     // use_secure_interface = false;
     // }
-
+    // set our internal state flags
+    _bDeviceReady = (status->state & STATE_APP_FW_READY) == STATE_APP_FW_READY;
+    _bFingerDown = (status->state & STATE_FINGER_DOWN) == STATE_FINGER_DOWN;
+    _currentMode = status->state & (STATE_ENROLL | STATE_IDENTIFY | STATE_NAVIGATION);
     msg.cmd_id = CMD_STATUS;
     msg.msg.status.event = status->event;
     msg.msg.status.state = status->state;
@@ -817,18 +825,29 @@ fpc_result_t sfDevFPC2534::prepForModeChange(uint16_t mode)
 //--------------------------------------------------------------------------------------------
 fpc_result_t sfDevFPC2534::startNavigationModeNew(uint8_t orientation)
 {
+    sfDevFPCMessage_t msg;
     int maxTries = 4;
     if (_comm == nullptr)
         return FPC_RESULT_WRONG_STATE;
 
-    requestAbort(); // just in case we are busy...
+    // if we are in navigation mode already, just return
+    if (_currentMode == STATE_NAVIGATION)
+        return FPC_RESULT_OK;
+
+    // if we are in another mode, call abort
+    if (_currentMode != 0)
+    {
+        requestAbort();
+        delay(150);          // give it a moment to respond
+        getNextMessage(msg); // ignore result
+    }
+
     fpc_result_t rc = startNavigationMode(orientation);
     if (rc != FPC_RESULT_OK)
         return rc;
 
     // Now we need to process the response
     delay(100); // give it a moment to respond
-    sfDevFPCMessage_t msg;
 
     int tries = 0;
     while (tries++ < maxTries)
@@ -836,18 +855,59 @@ fpc_result_t sfDevFPC2534::startNavigationModeNew(uint8_t orientation)
         rc = getNextMessage(msg);
         if (rc != FPC_RESULT_OK)
             return rc;
-        Serial.printf("Try %d: msg.cmd_id = 0x%X\r\n", tries, msg.cmd_id);
-        // if (msg.cmd_id == CMD_STATUS && (msg.msg.status.state & STATE_NAVIGATION) == STATE_NAVIGATION)
-        //     break;
-        if (msg.cmd_id == CMD_STATUS)
-        {
-            Serial.printf("Event: 0x%X, State: 0x%X, Fail Code: %d\r\n", msg.msg.status.event, msg.msg.status.state,
-                          msg.msg.status.app_fail_code);
-            if ((msg.msg.status.state & STATE_NAVIGATION) == STATE_NAVIGATION)
-                break;
+        if (_currentMode == STATE_NAVIGATION)
+            break; // we are in navigation mode now
 
-            delay(50);
-        }
+        delay(50);
+    }
+    return tries >= maxTries ? FPC_RESULT_TIMEOUT : FPC_RESULT_OK;
+    // Serial.printf("Try %d: msg.cmd_id = 0x%X\r\n", tries, msg.cmd_id);
+    // // if (msg.cmd_id == CMD_STATUS && (msg.msg.status.state & STATE_NAVIGATION) == STATE_NAVIGATION)
+    // //     break;
+    // if (msg.cmd_id == CMD_STATUS)
+    // {
+    //     Serial.printf("Event: 0x%X, State: 0x%X, Fail Code: %d\r\n", msg.msg.status.event, msg.msg.status.state,
+    //                   msg.msg.status.app_fail_code);
+    //     if ((msg.msg.status.state & STATE_NAVIGATION) == STATE_NAVIGATION)
+    //         break;
+
+    //     delay(50);
+    // }
+}
+
+fpc_result_t sfDevFPC2534::startIdentifyMode(fpc_id_type_t &id, uint16_t tag)
+{
+    sfDevFPCMessage_t msg;
+
+    int maxTries = 4;
+    if (_comm == nullptr)
+        return FPC_RESULT_WRONG_STATE;
+
+    // if we are in navigation mode already, just return
+    if (_currentMode == STATE_IDENTIFY)
+        return FPC_RESULT_OK;
+
+    // if we are in another mode, call abort
+    if (_currentMode != 0)
+    {
+        requestAbort();
+        delay(150);          // give it a moment to respond
+        getNextMessage(msg); // ignore result
+    }
+
+    fpc_result_t rc = requestIdentify(id, tag);
+    if (rc != FPC_RESULT_OK)
+        return rc;
+    int tries = 0;
+    while (tries++ < maxTries)
+    {
+        rc = getNextMessage(msg);
+        if (rc != FPC_RESULT_OK)
+            return rc;
+        if (_currentMode == STATE_IDENTIFY)
+            break; // we are in navigation mode now
+
+        delay(50);
     }
     return tries >= maxTries ? FPC_RESULT_TIMEOUT : FPC_RESULT_OK;
 }

@@ -271,6 +271,12 @@ class sfDevFPC2534
     fpc_result_t setLED(bool on);
     fpc_result_t getVersion(sfDevFPCMsgVersion_t &ver);
     fpc_result_t startNavigationModeNew(uint8_t orientation);
+    fpc_result_t startIdentifyMode(fpc_id_type_t &id, uint16_t tag);
+    fpc_result_t startIdentifyMode(void)
+    {
+        fpc_id_type_t id_type = {ID_TYPE_ALL, 0};
+        return startIdentifyMode(id_type, 0);
+        }
 
     fpc_result_t processNextResponse(void);
 
@@ -296,4 +302,9 @@ class sfDevFPC2534
 
     sfDevFPC2534IComm *_comm = nullptr;
     sfDevFPC2534Callbacks_t _callbacks;
+
+    // state/status flags
+    bool _bDeviceReady;
+    bool _bFingerDown;
+    uint16_t _currentMode;
 };
