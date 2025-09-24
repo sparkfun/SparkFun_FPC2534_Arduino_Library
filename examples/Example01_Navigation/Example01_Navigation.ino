@@ -20,8 +20,7 @@
 #define UART_RX 32
 #define UART_TX 14
 
-uint16_t next_op_state = STATE_NAVIGATION;
-uint16_t current_state = 0;
+bool startNavigation = true;
 
 // Declare our sensor object
 SfeFPC2534I2C mySensor;
@@ -36,62 +35,21 @@ static void on_error(uint16_t error)
 static void on_status(uint16_t event, uint16_t state)
 {
 
-    if (event == EVENT_FINGER_LOST)
+    // do we need to start navigation mode?
+    if (mySensor.currentMode() != STATE_NAVIGATION && mySensor.appIsReady())
     {
-        if (current_state == STATE_IDENTIFY)
-        {
-            // back to nav
-            mySensor.requestAbort();
-            next_op_state = STATE_NAVIGATION;
-        }
+        Serial.printf("[SET MODE]\tNAVIGATION\n\r");
+        startNavigation = false;
+        fpc_result_t rc = mySensor.startNavigationMode(0);
+        if (rc != FPC_RESULT_OK)
+            Serial.printf("Failed to start navigation mode - error: %d\n\r", rc);
     }
-    else if (next_op_state != 0 && (state & STATE_APP_FW_READY) == STATE_APP_FW_READY)
-    {
-        if (next_op_state == STATE_NAVIGATION)
-        {
-            Serial.printf("[SET MODE]\tNAVIGATION\n\r");
-            next_op_state = 0; // clear
-            fpc_result_t rc = mySensor.startNavigationMode(0);
-            if (rc != FPC_RESULT_OK)
-                Serial.printf("Failed to start navigation mode - error: %d\n\r", rc);
-            else
-                current_state = STATE_NAVIGATION;
-        }
-        else if (next_op_state == STATE_IDENTIFY)
-        {
-            Serial.printf("[SET MODE]\tIDENTIFY\n\r");
-            fpc_id_type_t id_type = {ID_TYPE_ALL, 0};
-            fpc_result_t rc = mySensor.requestIdentify(id_type, 0);
-            if (rc != FPC_RESULT_OK)
-                Serial.printf("Failed to start identify - error: %d\n\r", rc);
-            else
-                current_state = STATE_IDENTIFY;
-            next_op_state = 0; // clear
-        }
-    }
-    Serial.printf("[STATUS]\tEvent: %d, State: 0x%04X\n\r", event, state);
+    // Serial.printf("[STATUS]\tEvent: %d, State: 0x%04X\n\r", event, state);
 }
 
 static void on_version(char *version)
 {
     Serial.printf("[VERSION]\t%s\n\r", version);
-}
-
-static void on_enroll(uint8_t feedback, uint8_t samples_remaining)
-{
-}
-
-static void on_identify(int is_match, uint16_t id)
-{
-    Serial.printf("[IDENTIFY]\t");
-    if (is_match)
-        Serial.printf("MATCH - id: %d\n\r", id);
-    else
-        Serial.printf("NO MATCH\n\r");
-}
-
-static void on_list_templates(int num_templates, uint16_t *template_ids)
-{
 }
 
 static void on_navigation(int gesture)
@@ -115,12 +73,7 @@ static void on_navigation(int gesture)
         Serial.printf("LEFT\n\r");
         break;
     case CMD_NAV_EVENT_PRESS: {
-        // Serial.printf("PRESS\n\r");
-        Serial.printf("PRESS ->{Identify}\n\r");
-        next_op_state = STATE_IDENTIFY;
-        // change modes - abort
-        mySensor.requestAbort();
-
+        Serial.printf("PRESS\n\r");
         break;
     }
     case CMD_NAV_EVENT_LONG_PRESS:
@@ -133,13 +86,8 @@ static void on_navigation(int gesture)
     }
 }
 
-static const sfDevFPC2534Callbacks_t cmd_cb = {.on_error = on_error,
-                                               .on_status = on_status,
-                                               .on_version = on_version,
-                                               .on_enroll = on_enroll,
-                                               .on_identify = on_identify,
-                                               .on_list_templates = on_list_templates,
-                                               .on_navigation = on_navigation};
+static const sfDevFPC2534Callbacks_t cmd_cb = {
+    .on_error = on_error, .on_status = on_status, .on_version = on_version, .on_navigation = on_navigation};
 
 void reset_sensor(void)
 {
