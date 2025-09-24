@@ -30,6 +30,7 @@ typedef struct
     void (*on_system_config_get)(fpc_system_config_t *cfg);
     void (*on_bist_done)(uint16_t test_verdict);
     void (*on_data_transfer_done)(uint8_t *data, size_t size);
+    void (*on_mode_change)(uint16_t new_mode);
 } sfDevFPC2534Callbacks_t;
 
 class sfDevFPC2534
@@ -212,6 +213,15 @@ class sfDevFPC2534
      */
     fpc_result_t factoryReset(void);
 
+    uint16_t currentMode(void) const
+    {
+        return _last_state & (STATE_ENROLL | STATE_IDENTIFY | STATE_NAVIGATION);
+    }
+    bool isFingerPresent(void) const
+    {
+        return ((_last_state & STATE_FINGER_DOWN) == STATE_FINGER_DOWN);
+    }
+
     // for the library to actually work, user provided callbacks are needed ...
     void setCallbacks(const sfDevFPC2534Callbacks_t &callbacks)
     {
@@ -223,6 +233,10 @@ class sfDevFPC2534
     {
         _comm = &comm;
         return true;
+    }
+    bool appIsReady(void) const
+    {
+        return (_last_state & STATE_APP_FW_READY) == STATE_APP_FW_READY;
     }
 
     fpc_result_t processNextResponse(void);
@@ -242,4 +256,10 @@ class sfDevFPC2534
 
     sfDevFPC2534IComm *_comm = nullptr;
     sfDevFPC2534Callbacks_t _callbacks;
+
+    // current mode of the sensor
+    uint16_t _last_state = 0;
+
+    // Is a finger present?
+    bool _finger_present = false;
 };

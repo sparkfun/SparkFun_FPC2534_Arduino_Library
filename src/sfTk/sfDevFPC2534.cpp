@@ -10,7 +10,7 @@
 
 #include "sfDevFPC2534.h"
 
-sfDevFPC2534::sfDevFPC2534() : _comm{nullptr}, _callbacks{0}
+sfDevFPC2534::sfDevFPC2534() : _comm{nullptr}, _callbacks{0}, _last_state{0}, _finger_present{false}
 {
 }
 //--------------------------------------------------------------------------------------------
@@ -210,6 +210,18 @@ fpc_result_t sfDevFPC2534::parseStatusCommand(fpc_cmd_hdr_t *cmd_hdr, size_t siz
     // {
     // use_secure_interface = false;
     // }
+
+    uint16_t prev_mode = _last_state & (STATE_ENROLL | STATE_IDENTIFY | STATE_NAVIGATION);
+    _last_state = status->state;
+
+    // mode change
+    if ((status->state & (STATE_ENROLL | STATE_IDENTIFY | STATE_NAVIGATION)) != prev_mode)
+    {
+
+        // do we have a callback?
+        if (_callbacks.on_mode_change)
+            _callbacks.on_mode_change(_last_state & (STATE_ENROLL | STATE_IDENTIFY | STATE_NAVIGATION));
+    }
 
     if ((status->app_fail_code != 0) && _callbacks.on_error)
         _callbacks.on_error(status->app_fail_code);
