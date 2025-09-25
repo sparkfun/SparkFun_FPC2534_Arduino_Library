@@ -85,9 +85,15 @@ static void on_navigation(int gesture)
         break;
     }
 }
-
-static const sfDevFPC2534Callbacks_t cmd_cb = {
-    .on_error = on_error, .on_status = on_status, .on_version = on_version, .on_navigation = on_navigation};
+static void on_finger_change(bool present)
+{
+    Serial.printf("[FINGER]\t%s\n\r", present ? "PRESENT" : "NOT PRESENT");
+}
+static const sfDevFPC2534Callbacks_t cmd_cb = {.on_error = on_error,
+                                               .on_status = on_status,
+                                               .on_version = on_version,
+                                               .on_navigation = on_navigation,
+                                               .on_finger_change = on_finger_change};
 
 void reset_sensor(void)
 {
