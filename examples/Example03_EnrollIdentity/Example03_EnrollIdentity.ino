@@ -110,12 +110,12 @@ static void on_identify(int is_match, uint16_t id)
     if (is_match)
     {
         mySensor.setLED(true);
-        Serial.printf("Identify match on id %d\n\r", id);
+        Serial.printf("MATCH {finger %d}\n\r", id);
     }
     else
     {
         mySensor.setLED(false);
-        Serial.printf("Identify no match\n\r");
+        Serial.printf("NO MATCH\n\r");
     }
 }
 
@@ -188,7 +188,7 @@ static void process_state(void)
             else
             {
                 fpc_id_type_t id_type = {ID_TYPE_ALL, 0};
-                Serial.printf("tarting identify\r\n");
+                Serial.printf("starting identify\r\n");
                 next_state = APP_STATE_WAIT_IDENTIFY;
                 mySensor.requestIdentify(id_type, 0);
             }
@@ -291,16 +291,15 @@ void setup()
 void loop()
 {
 
-    // Call the library to process the next response from the sensor
-    fpc_result_t rc = mySensor.processNextResponse();
-    if (rc != FPC_RESULT_OK && rc != FPC_PENDING_OPERATION)
+    // is data available for processing?
+    if (mySensor.isDataAvailable())
     {
-        Serial.printf("[ERROR] Processing Error: %d\n\r", rc);
-    }
-    else
-    {
-        // If we processed something, check our state machine
-        process_state();
+        // Call the library to process the next response from the sensor
+        fpc_result_t rc = mySensor.processNextResponse();
+        if (rc != FPC_RESULT_OK && rc != FPC_PENDING_OPERATION)
+            Serial.printf("[ERROR] Processing Error: %d\n\r", rc);
+        else
+            process_state();
     }
 
     delay(200);

@@ -87,7 +87,7 @@ static void on_navigation(int gesture)
 }
 static void on_finger_change(bool present)
 {
-    Serial.printf("[FINGER]\t%s\n\r", present ? "PRESENT" : "NOT PRESENT");
+    // Serial.printf("[FINGER]\t%s\n\r", present ? "PRESENT" : "NOT PRESENT");
 }
 static const sfDevFPC2534Callbacks_t cmd_cb = {.on_error = on_error,
                                                .on_status = on_status,

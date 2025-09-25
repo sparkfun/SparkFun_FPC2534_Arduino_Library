@@ -79,9 +79,12 @@ bool sfDevFPC2534I2C::dataAvailable()
     if (_i2cPort == nullptr)
         return false;
 
-    bool rc = data_available;
-    data_available = false;
-    return rc;
+    // bool rc = data_available;
+    // data_available = false;
+    // return rc;
+
+    // the data available flag is set, or we have data in the buffer
+    return data_available || _dataLength > 0;
 }
 
 //--------------------------------------------------------------------------------------------
@@ -120,6 +123,9 @@ uint16_t sfDevFPC2534I2C::read(uint8_t *data, size_t len)
 
     if (_dataLength == 0)
     {
+
+        // At this point, we are reading in data - clear out the data available flag used by interrupt
+        data_available = false;
         // read in the packet size.
         _dataLength = __readHelper->readTransferSize(_i2cAddress);
 

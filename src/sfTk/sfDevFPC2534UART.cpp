@@ -25,7 +25,7 @@ bool sfDevFPC2534UART::initialize(HardwareSerial &theUART)
 
 //--------------------------------------------------------------------------------------------
 
-bool sfDevFPC2534UART::dataAvailable()
+bool sfDevFPC2534UART::dataAvailable(void)
 {
     if (_theUART == nullptr)
         return false; // UART bus not initialized

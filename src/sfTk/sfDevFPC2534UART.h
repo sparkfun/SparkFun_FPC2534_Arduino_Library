@@ -27,8 +27,8 @@ class sfDevFPC2534UART : public sfDevFPC2534IComm
   public:
     sfDevFPC2534UART();
     bool initialize(HardwareSerial &theUART);
-    bool dataAvailable();
-    void clearData();
+    bool dataAvailable(void);
+    void clearData(void);
     uint16_t write(const uint8_t *data, size_t len);
     uint16_t read(uint8_t *data, size_t len);
 

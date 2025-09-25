@@ -240,6 +240,13 @@ class sfDevFPC2534
         return (_current_state & STATE_APP_FW_READY) == STATE_APP_FW_READY;
     }
 
+    bool isDataAvailable(void) const
+    {
+        if (_comm == nullptr)
+            return false;
+        return _comm->dataAvailable();
+    }
+
     fpc_result_t setLED(bool on = true);
 
     fpc_result_t processNextResponse(void);
