@@ -10,7 +10,7 @@
 
 #include "sfDevFPC2534.h"
 
-sfDevFPC2534::sfDevFPC2534() : _comm{nullptr}, _callbacks{0}, _last_state{0}, _finger_present{false}
+sfDevFPC2534::sfDevFPC2534() : _comm{nullptr}, _callbacks{0}, _current_state{0}, _finger_present{false}
 {
 }
 //--------------------------------------------------------------------------------------------
@@ -55,12 +55,12 @@ fpc_result_t sfDevFPC2534::requestVersion(void)
 }
 
 //--------------------------------------------------------------------------------------------
-fpc_result_t sfDevFPC2534::requestEnroll(fpc_id_type_t *id)
+fpc_result_t sfDevFPC2534::requestEnroll(fpc_id_type_t &id)
 {
-    if (id == nullptr || (id->type != ID_TYPE_SPECIFIED && id->type != ID_TYPE_GENERATE_NEW))
+    if (id.type != ID_TYPE_SPECIFIED && id.type != ID_TYPE_GENERATE_NEW)
         return FPC_RESULT_INVALID_PARAM;
 
-    fpc_cmd_enroll_request_t cmd = {.cmd = {.cmd_id = CMD_ENROLL, .type = FPC_FRAME_TYPE_CMD_REQUEST}, .tpl_id = *id};
+    fpc_cmd_enroll_request_t cmd = {.cmd = {.cmd_id = CMD_ENROLL, .type = FPC_FRAME_TYPE_CMD_REQUEST}, .tpl_id = id};
 
     return sendCommand((fpc_cmd_hdr_t &)cmd, sizeof(fpc_cmd_enroll_request_t));
 }
@@ -94,13 +94,13 @@ fpc_result_t sfDevFPC2534::requestListTemplates(void)
 }
 
 //--------------------------------------------------------------------------------------------
-fpc_result_t sfDevFPC2534::requestDeleteTemplate(fpc_id_type_t *id)
+fpc_result_t sfDevFPC2534::requestDeleteTemplate(fpc_id_type_t &id)
 {
-    if (id == nullptr || (id->type != ID_TYPE_SPECIFIED && id->type != ID_TYPE_ALL))
+    if (id.type != ID_TYPE_SPECIFIED && id.type != ID_TYPE_ALL)
         return FPC_RESULT_INVALID_PARAM;
 
     fpc_cmd_enroll_request_t cmd = {.cmd = {.cmd_id = CMD_DELETE_TEMPLATE, .type = FPC_FRAME_TYPE_CMD_REQUEST},
-                                    .tpl_id = *id};
+                                    .tpl_id = id};
 
     return sendCommand((fpc_cmd_hdr_t &)cmd, sizeof(fpc_cmd_enroll_request_t));
 }
@@ -210,22 +210,33 @@ fpc_result_t sfDevFPC2534::parseStatusCommand(fpc_cmd_hdr_t *cmd_hdr, size_t siz
     // {
     // use_secure_interface = false;
     // }
-
-    uint16_t prev_mode = _last_state & (STATE_ENROLL | STATE_IDENTIFY | STATE_NAVIGATION);
-    _last_state = status->state;
-
-    // mode change
-    if ((status->state & (STATE_ENROLL | STATE_IDENTIFY | STATE_NAVIGATION)) != prev_mode)
+    // Serial.printf("[STATUS]\tEvent: 0x%04X, State: 0x%04X, AppFail: 0x%04X\n\r", status->event, status->state,
+    //               status->app_fail_code);
+    // if we have an error code, just call the error callback and exit
+    if (status->app_fail_code != 0)
     {
-
-        // do we have a callback?
-        if (_callbacks.on_mode_change)
-            _callbacks.on_mode_change(_last_state & (STATE_ENROLL | STATE_IDENTIFY | STATE_NAVIGATION));
+        if (_callbacks.on_error)
+            _callbacks.on_error(status->app_fail_code);
+        return FPC_RESULT_OK;
     }
 
-    if ((status->app_fail_code != 0) && _callbacks.on_error)
-        _callbacks.on_error(status->app_fail_code);
-    else if (_callbacks.on_status)
+    uint16_t prev_state = _current_state;
+    // stash our new state
+    _current_state = status->state;
+
+    // mode change
+    if (currentMode() != (prev_state & (STATE_ENROLL | STATE_IDENTIFY | STATE_NAVIGATION)) && _callbacks.on_mode_change)
+        _callbacks.on_mode_change(currentMode());
+
+    // finger present change
+    if (isFingerPresent() != ((prev_state & STATE_FINGER_DOWN) == STATE_FINGER_DOWN))
+    {
+        if (_callbacks.on_finger_change)
+            _callbacks.on_finger_change(isFingerPresent());
+    }
+
+    // Is there an error code?
+    if (_callbacks.on_status)
         _callbacks.on_status(status->event, status->state);
 
     return FPC_RESULT_OK;
@@ -250,7 +261,6 @@ fpc_result_t sfDevFPC2534::parseVersionCommand(fpc_cmd_hdr_t *cmd_hdr, size_t si
 //--------------------------------------------------------------------------------------------
 fpc_result_t sfDevFPC2534::parseEnrollStatusCommand(fpc_cmd_hdr_t *cmd_hdr, size_t size)
 {
-
     if (size != sizeof(fpc_cmd_enroll_status_response_t))
         return FPC_RESULT_INVALID_PARAM;
 
@@ -265,7 +275,6 @@ fpc_result_t sfDevFPC2534::parseEnrollStatusCommand(fpc_cmd_hdr_t *cmd_hdr, size
 //--------------------------------------------------------------------------------------------
 fpc_result_t sfDevFPC2534::parseIdentifyCommand(fpc_cmd_hdr_t *cmd_hdr, size_t size)
 {
-
     if (size != sizeof(fpc_cmd_identify_status_response_t))
         return FPC_RESULT_INVALID_PARAM;
 
@@ -294,7 +303,6 @@ fpc_result_t sfDevFPC2534::parseListTemplatesCommand(fpc_cmd_hdr_t *cmd_hdr, siz
 //--------------------------------------------------------------------------------------------
 fpc_result_t sfDevFPC2534::parseNavigationEventCommand(fpc_cmd_hdr_t *cmd_hdr, size_t size)
 {
-
     if (size != sizeof(fpc_cmd_navigation_status_event_t))
         return FPC_RESULT_INVALID_PARAM;
 
@@ -571,7 +579,8 @@ fpc_result_t sfDevFPC2534::processNextResponse()
     else if (rc != FPC_RESULT_OK)
         return rc;
 
-    // Serial.printf("Frame Header: ver 0x%04X, type 0x%02X, flags 0x%04X, payload size %d\n\r", frameHeader.version,
+    // Serial.printf("Frame Header: ver 0x%04X, type 0x%02X, flags 0x%04X, payload size %d\n\r",
+    // frameHeader.version,
     //               frameHeader.type, frameHeader.flags, frameHeader.payload_size);
 
     // Sanity check of the header...
@@ -589,4 +598,12 @@ fpc_result_t sfDevFPC2534::processNextResponse()
         return rc;
 
     return parseCommand(framePayload, frameHeader.payload_size);
+}
+
+fpc_result_t sfDevFPC2534::setLED(bool ledOn)
+{
+    if (_comm == nullptr)
+        return FPC_RESULT_WRONG_STATE;
+
+    return requestSetGPIO(1, GPIO_CONTROL_MODE_OUTPUT_PP, ledOn ? GPIO_CONTROL_STATE_SET : GPIO_CONTROL_STATE_RESET);
 }

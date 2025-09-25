@@ -31,6 +31,7 @@ typedef struct
     void (*on_bist_done)(uint16_t test_verdict);
     void (*on_data_transfer_done)(uint8_t *data, size_t size);
     void (*on_mode_change)(uint16_t new_mode);
+    void (*on_finger_change)(bool present);
 } sfDevFPC2534Callbacks_t;
 
 class sfDevFPC2534
@@ -60,7 +61,7 @@ class sfDevFPC2534
      * @param id The User ID to be used for the new template.
      * @return Result Code
      */
-    fpc_result_t requestEnroll(fpc_id_type_t *id);
+    fpc_result_t requestEnroll(fpc_id_type_t &id);
 
     /**
      * @brief Populate and transfer a CMD_IDENTIFY Request.
@@ -97,7 +98,7 @@ class sfDevFPC2534
      *
      * @return Result Code
      */
-    fpc_result_t requestDeleteTemplate(fpc_id_type_t *id);
+    fpc_result_t requestDeleteTemplate(fpc_id_type_t &id);
 
     /**
      * @brief Populate and transfer a CMD_RESET request.
@@ -215,11 +216,11 @@ class sfDevFPC2534
 
     uint16_t currentMode(void) const
     {
-        return _last_state & (STATE_ENROLL | STATE_IDENTIFY | STATE_NAVIGATION);
+        return _current_state & (STATE_ENROLL | STATE_IDENTIFY | STATE_NAVIGATION);
     }
     bool isFingerPresent(void) const
     {
-        return ((_last_state & STATE_FINGER_DOWN) == STATE_FINGER_DOWN);
+        return ((_current_state & STATE_FINGER_DOWN) == STATE_FINGER_DOWN);
     }
 
     // for the library to actually work, user provided callbacks are needed ...
@@ -236,8 +237,10 @@ class sfDevFPC2534
     }
     bool appIsReady(void) const
     {
-        return (_last_state & STATE_APP_FW_READY) == STATE_APP_FW_READY;
+        return (_current_state & STATE_APP_FW_READY) == STATE_APP_FW_READY;
     }
+
+    fpc_result_t setLED(bool on = true);
 
     fpc_result_t processNextResponse(void);
 
@@ -257,8 +260,8 @@ class sfDevFPC2534
     sfDevFPC2534IComm *_comm = nullptr;
     sfDevFPC2534Callbacks_t _callbacks;
 
-    // current mode of the sensor
-    uint16_t _last_state = 0;
+    // current state of the sensor
+    uint16_t _current_state = 0;
 
     // Is a finger present?
     bool _finger_present = false;
