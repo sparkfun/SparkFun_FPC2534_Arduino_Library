@@ -131,8 +131,18 @@ static void on_navigation(uint16_t gesture)
     case CMD_NAV_EVENT_LONG_PRESS:
         // Request the firmware version from the sensor. The sensor will respond
         // with a version event that will call our on_version() function above.
-        Serial.printf("LONG PRESS -> {Get Version}\n\r");
-        mySensor.requestVersion();
+        Serial.printf("LONG PRESS -> {Enroll a finger}\n\r");
+        if (mySensor.currentMode() == STATE_NAVIGATION)
+            mySensor.requestAbort(); // get out of name mode
+
+        mySensor.setLED(true);
+        // start enroll mode
+        {
+            fpc_id_type_t id = {.type = ID_TYPE_GENERATE_NEW, .id = 0};
+            fpc_result_t rc = mySensor.requestEnroll(id);
+            if (rc != FPC_RESULT_OK)
+                Serial.printf("[ERROR]\tFailed to start enroll - error: %d\n\r", rc);
+        }
         break;
     default:
         Serial.println(".");
@@ -147,6 +157,12 @@ static void on_identify(bool is_match, uint16_t id)
         Serial.printf("\t\tMatched Template ID: %d\n\r", id);
 }
 
+static void on_enroll(uint8_t feedback, uint8_t samples_remaining)
+{
+
+    Serial.printf("[INFO]\t\tEnroll samples remaining: %d, feedback: %s (%d)\n\r", samples_remaining,
+                  mySensor.getEnrollFeedBackString(feedback), feedback);
+}
 //----------------------------------------------------------------------------
 // on_list_templates()
 //
@@ -162,7 +178,7 @@ static void on_list_templates(uint16_t num_templates, uint16_t *template_ids)
 // on_status()
 static void on_status(uint16_t event, uint16_t state)
 {
-    Serial.printf("[STATUS]\tEvent: 0x%04X, State: 0x%04X\n\r", event, state);
+    // Serial.printf("[STATUS]\tEvent: 0x%04X, State: 0x%04X\n\r", event, state);
 
     if (event == EVENT_FINGER_LOST)
     {
@@ -174,6 +190,7 @@ static void on_status(uint16_t event, uint16_t state)
 static const sfDevFPC2534Callbacks_t cmd_cb = {.on_error = on_error,
                                                .on_status = on_status,
                                                .on_version = on_version,
+                                               .on_enroll = on_enroll,
                                                .on_identify = on_identify,
                                                .on_list_templates = on_list_templates,
                                                .on_navigation = on_navigation,
