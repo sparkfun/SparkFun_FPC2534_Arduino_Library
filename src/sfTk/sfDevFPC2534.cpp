@@ -561,8 +561,29 @@ fpc_result_t sfDevFPC2534::parseCommand(uint8_t *payload, size_t size)
     return FPC_RESULT_OK;
 }
 
+bool sfDevFPC2534::checkForNoneEvent(uint8_t *payload, size_t size)
+{
+    if (payload == nullptr || size == 0)
+        return false;
+
+    fpc_cmd_hdr_t *cmdHeader = (fpc_cmd_hdr_t *)payload;
+
+    // look legit?
+    if (cmdHeader->type != FPC_FRAME_TYPE_CMD_EVENT && cmdHeader->type != FPC_FRAME_TYPE_CMD_RESPONSE)
+        return false;
+
+    if (cmdHeader->cmd_id != CMD_STATUS)
+        return false;
+
+    if (size != sizeof(fpc_cmd_status_response_t))
+        return false;
+
+    fpc_cmd_status_response_t *status = (fpc_cmd_status_response_t *)cmdHeader;
+    return status->event == EVENT_NONE;
+}
+
 //--------------------------------------------------------------------------------------------
-fpc_result_t sfDevFPC2534::processNextResponse()
+fpc_result_t sfDevFPC2534::processNextResponse(bool flushNone)
 {
     if (_comm == nullptr)
         return FPC_RESULT_WRONG_STATE;
@@ -603,6 +624,14 @@ fpc_result_t sfDevFPC2534::processNextResponse()
     if (rc != FPC_RESULT_OK)
         return rc;
 
+    // if we are flushing NONE events, and this is one, just return
+    if (flushNone)
+    {
+        // if a none event, just skip it
+        if (checkForNoneEvent(framePayload, frameHeader.payload_size))
+            return FPC_RESULT_OK;
+    }
+
     return parseCommand(framePayload, frameHeader.payload_size);
 }
 
@@ -611,5 +640,20 @@ fpc_result_t sfDevFPC2534::setLED(bool ledOn)
     if (_comm == nullptr)
         return FPC_RESULT_WRONG_STATE;
 
-    return requestSetGPIO(1, GPIO_CONTROL_MODE_OUTPUT_PP, ledOn ? GPIO_CONTROL_STATE_SET : GPIO_CONTROL_STATE_RESET);
+    fpc_result_t rc =
+        requestSetGPIO(1, GPIO_CONTROL_MODE_OUTPUT_PP, ledOn ? GPIO_CONTROL_STATE_SET : GPIO_CONTROL_STATE_RESET);
+    if (rc == FPC_RESULT_OK)
+    {
+        delay(20);
+        flushNoneEvent();
+    }
+    return rc;
+}
+
+fpc_result_t sfDevFPC2534::flushNoneEvent(void)
+{
+    if (_comm == nullptr)
+        return FPC_RESULT_WRONG_STATE;
+
+    return processNextResponse(true);
 }

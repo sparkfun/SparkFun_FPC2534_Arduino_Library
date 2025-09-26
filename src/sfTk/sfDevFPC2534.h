@@ -23,9 +23,9 @@ typedef struct
     void (*on_status)(uint16_t event, uint16_t state);
     void (*on_version)(char *version);
     void (*on_enroll)(uint8_t feedback, uint8_t samples_remaining);
-    void (*on_identify)(int is_match, uint16_t id);
-    void (*on_list_templates)(int num_templates, uint16_t *template_ids);
-    void (*on_navigation)(int gesture);
+    void (*on_identify)(bool is_match, uint16_t id);
+    void (*on_list_templates)(uint16_t num_templates, uint16_t *template_ids);
+    void (*on_navigation)(uint16_t gesture);
     void (*on_gpio_control)(uint8_t state);
     void (*on_system_config_get)(fpc_system_config_t *cfg);
     void (*on_bist_done)(uint16_t test_verdict);
@@ -251,7 +251,11 @@ class sfDevFPC2534
 
     fpc_result_t setLED(bool on = true);
 
-    fpc_result_t processNextResponse(void);
+    fpc_result_t processNextResponse(bool flushNone);
+    fpc_result_t processNextResponse(void)
+    {
+        return processNextResponse(false);
+    };
 
   private:
     fpc_result_t sendCommand(fpc_cmd_hdr_t &cmd, size_t size);
@@ -265,6 +269,9 @@ class sfDevFPC2534
     fpc_result_t parseGetSystemConfigCommand(fpc_cmd_hdr_t *, size_t);
     fpc_result_t parseBISTCommand(fpc_cmd_hdr_t *, size_t);
     fpc_result_t parseCommand(uint8_t *frame_payload, size_t payload_size);
+
+    bool checkForNoneEvent(uint8_t *payload, size_t size);
+    fpc_result_t flushNoneEvent(void);
 
     sfDevFPC2534IComm *_comm = nullptr;
     sfDevFPC2534Callbacks_t _callbacks;
