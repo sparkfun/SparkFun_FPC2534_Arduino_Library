@@ -82,7 +82,14 @@ fpc_result_t sfDevFPC2534::requestAbort(void)
     /* Abort Command Request has no payload */
     fpc_cmd_hdr_t cmd = {.cmd_id = CMD_ABORT, .type = FPC_FRAME_TYPE_CMD_REQUEST};
 
-    return sendCommand(cmd, sizeof(fpc_cmd_hdr_t));
+    fpc_result_t rc = sendCommand(cmd, sizeof(fpc_cmd_hdr_t));
+    if (rc == FPC_RESULT_OK)
+    {
+        // the response from this command is a NONE event - flush it
+        delay(20);
+        flushNoneEvent();
+    }
+    return rc;
 }
 //--------------------------------------------------------------------------------------------
 fpc_result_t sfDevFPC2534::requestListTemplates(void)
