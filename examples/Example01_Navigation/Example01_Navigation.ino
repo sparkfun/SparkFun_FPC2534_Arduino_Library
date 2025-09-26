@@ -100,7 +100,7 @@ static void on_version(char *version)
 //
 // Call when the sensor sends a navigation event
 //
-static void on_navigation(int gesture)
+static void on_navigation(uint16_t gesture)
 {
     Serial.printf("[NAVIGATION]\t");
     switch (gesture)
