@@ -257,6 +257,30 @@ class sfDevFPC2534
         return processNextResponse(false);
     };
 
+    static const char *getEnrollFeedBackString(uint8_t feedback)
+    {
+        switch (feedback)
+        {
+        case ENROLL_FEEDBACK_DONE:
+            return "Done";
+        case ENROLL_FEEDBACK_PROGRESS:
+            return "Progress";
+        case ENROLL_FEEDBACK_REJECT_LOW_QUALITY:
+            return "Reject - LowQuality";
+        case ENROLL_FEEDBACK_REJECT_LOW_COVERAGE:
+            return "Reject - LowCoverage";
+        case ENROLL_FEEDBACK_REJECT_LOW_MOBILITY:
+            return "Reject - LowMobility";
+        case ENROLL_FEEDBACK_REJECT_OTHER:
+            return "Reject - Other";
+        case ENROLL_FEEDBACK_PROGRESS_IMMOBILE:
+            return "Progress - Immobile";
+        default:
+            break;
+        }
+        return "Unknown";
+    }
+
   private:
     fpc_result_t sendCommand(fpc_cmd_hdr_t &cmd, size_t size);
     fpc_result_t parseStatusCommand(fpc_cmd_hdr_t *, size_t);
