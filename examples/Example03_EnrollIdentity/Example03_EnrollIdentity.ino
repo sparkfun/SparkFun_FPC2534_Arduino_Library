@@ -20,9 +20,6 @@
 // #define UART_RX 32
 // #define UART_TX 14
 
-// Used to track LED state
-bool ledState = false;
-
 // Declare our sensor object
 SfeFPC2534I2C mySensor;
 
@@ -31,6 +28,7 @@ static void check_sensor_status(void)
     // if the sensor is in an "idle", mode, launch navigation mode
     if (mySensor.currentMode() == 0 && mySensor.isReady())
     {
+        mySensor.setLED(false);
         fpc_result_t rc = mySensor.startNavigationMode(0);
 
         // error?
@@ -45,7 +43,7 @@ static void check_sensor_status(void)
         Serial.println("\t- Press to check fingerprint identity.");
         Serial.println("\t- Long Press to enroll a fingerprint.");
         Serial.println();
-    }
+        }
 }
 
 //------------------------------------------------------------------------------------
@@ -81,29 +79,6 @@ static void on_is_ready_change(bool isReady)
         fpc_result_t rc = mySensor.requestListTemplates();
         if (rc != FPC_RESULT_OK)
             Serial.printf("[ERROR]\tFailed to get template list - error: %d\n\r", rc);
-        // // do we need to start navigation mode?
-        // if (mySensor.currentMode() != STATE_NAVIGATION && startNavigation)
-        // {
-        //     // Place the sensor in Navigation mode and print out a menue.
-        //     startNavigation = false;
-        //     fpc_result_t rc = mySensor.startNavigationMode(0);
-
-        //     // error?
-        //     if (rc != FPC_RESULT_OK)
-        //     {
-        //         Serial.printf("[ERROR]\tFailed to start navigation mode - error: %d\n\r", rc);
-        //         return;
-        //     }
-
-        //     Serial.printf("[SETUP]\tSensor In Navigation mode.\n\r");
-        //     Serial.println();
-        //     Serial.println("\t- Swipe Up, Down, Left, Right to see events.");
-        //     Serial.println("\t- Press to toggle LED on/off.");
-        //     Serial.println("\t- Long Press to get firmware version.");
-        //     Serial.println();
-        // }
-        // else
-        //     Serial.println("[STATUS] \tFPC2534 Device is NOT ready");
     }
 }
 
@@ -129,11 +104,21 @@ static void on_navigation(uint16_t gesture)
     switch (gesture)
     {
     case CMD_NAV_EVENT_PRESS:
-        // Toggle the on-board  LED
-        Serial.printf("PRESS -> {LED %s}\n\r", ledState ? "OFF" : "ON");
-        ledState = !ledState;
-        mySensor.setLED(ledState);
-        // mySensor.requestAbort();
+        // Start the Identity mode ..
+        // TODO - Check on templates ..
+        Serial.printf("PRESS -> {Identity Check - Place Finger on Sensor}\n\r");
+        if (mySensor.currentMode() == STATE_NAVIGATION)
+            mySensor.requestAbort(); // get out of name mode
+
+        mySensor.setLED(true);
+        // start identity mode
+        {
+            fpc_id_type_t id = {.type = ID_TYPE_ALL, .id = 0};
+            fpc_result_t rc = mySensor.requestIdentify(id, 1);
+            if (rc != FPC_RESULT_OK)
+                Serial.printf("[ERROR]\tFailed to start identity - error: %d\n\r", rc);
+        }
+
         break;
 
     case CMD_NAV_EVENT_LONG_PRESS:
@@ -148,6 +133,13 @@ static void on_navigation(uint16_t gesture)
     }
 }
 
+static void on_identify(bool is_match, uint16_t id)
+{
+    Serial.printf("[INFO]\tIdentify Result: %s\n\r", is_match ? "MATCH" : "NO MATCH");
+    if (is_match)
+        Serial.printf("\t\tMatched Template ID: %d\n\r", id);
+}
+
 //----------------------------------------------------------------------------
 // on_list_templates()
 //
@@ -155,18 +147,24 @@ static void on_navigation(uint16_t gesture)
 static void on_list_templates(uint16_t num_templates, uint16_t *template_ids)
 {
     Serial.printf("[INFO]\tNumber of templates on the sensor: %d\n\r", num_templates);
-
     check_sensor_status();
 }
 
 static void on_status(uint16_t event, uint16_t state)
 {
     Serial.printf("[STATUS]\tEvent: 0x%04X, State: 0x%04X\n\r", event, state);
+
+    if (event == EVENT_FINGER_LOST)
+    {
+        // if we are in identity mode, and finger lost, go back to nav mode
+        check_sensor_status();
+    }
 }
 // Define our command callbacks the library will call on events from the sensor
 static const sfDevFPC2534Callbacks_t cmd_cb = {.on_error = on_error,
                                                .on_status = on_status,
                                                .on_version = on_version,
+                                               .on_identify = on_identify,
                                                .on_list_templates = on_list_templates,
                                                .on_navigation = on_navigation,
                                                .on_is_ready_change = on_is_ready_change};
