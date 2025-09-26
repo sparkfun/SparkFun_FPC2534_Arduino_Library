@@ -180,11 +180,19 @@ static void on_status(uint16_t event, uint16_t state)
 {
     // Serial.printf("[STATUS]\tEvent: 0x%04X, State: 0x%04X\n\r", event, state);
 
-    if (event == EVENT_FINGER_LOST)
-    {
-        // if we are in identity mode, and finger lost, go back to nav mode
+    // if (event == EVENT_FINGER_LOST)
+    // {
+    //     // if we are in identity mode, and finger lost, go back to nav mode
+    //     check_sensor_status();
+    // }
+}
+
+static void on_finger_change(bool present)
+{
+    // if finger off, check the sensor status
+    if (!present)
         check_sensor_status();
-    }
+    // Serial.printf("[FINGER]\tFinger %s the sensor.\n\r", present ? "on" : "off");
 }
 // Define our command callbacks the library will call on events from the sensor
 static const sfDevFPC2534Callbacks_t cmd_cb = {.on_error = on_error,
@@ -194,6 +202,7 @@ static const sfDevFPC2534Callbacks_t cmd_cb = {.on_error = on_error,
                                                .on_identify = on_identify,
                                                .on_list_templates = on_list_templates,
                                                .on_navigation = on_navigation,
+                                               .on_finger_change = on_finger_change,
                                                .on_is_ready_change = on_is_ready_change};
 
 //------------------------------------------------------------------------------------
