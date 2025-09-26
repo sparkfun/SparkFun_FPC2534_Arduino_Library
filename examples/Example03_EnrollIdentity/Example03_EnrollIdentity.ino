@@ -20,6 +20,8 @@
 // #define UART_RX 32
 // #define UART_TX 14
 
+uint16_t numberOfTemplates = 0;
+
 // Declare our sensor object
 SfeFPC2534I2C mySensor;
 
@@ -43,7 +45,7 @@ static void check_sensor_status(void)
         Serial.println("\t- Press to check fingerprint identity.");
         Serial.println("\t- Long Press to enroll a fingerprint.");
         Serial.println();
-        }
+    }
 }
 
 //------------------------------------------------------------------------------------
@@ -105,7 +107,12 @@ static void on_navigation(uint16_t gesture)
     {
     case CMD_NAV_EVENT_PRESS:
         // Start the Identity mode ..
-        // TODO - Check on templates ..
+        if (numberOfTemplates == 0)
+        {
+            Serial.printf("PRESS -> {No templates enrolled - cannot check identity}\n\r");
+            break;
+        }
+
         Serial.printf("PRESS -> {Identity Check - Place Finger on Sensor}\n\r");
         if (mySensor.currentMode() == STATE_NAVIGATION)
             mySensor.requestAbort(); // get out of name mode
@@ -146,10 +153,13 @@ static void on_identify(bool is_match, uint16_t id)
 
 static void on_list_templates(uint16_t num_templates, uint16_t *template_ids)
 {
+    numberOfTemplates = num_templates;
     Serial.printf("[INFO]\tNumber of templates on the sensor: %d\n\r", num_templates);
     check_sensor_status();
 }
 
+//----------------------------------------------------------------------------
+// on_status()
 static void on_status(uint16_t event, uint16_t state)
 {
     Serial.printf("[STATUS]\tEvent: 0x%04X, State: 0x%04X\n\r", event, state);
