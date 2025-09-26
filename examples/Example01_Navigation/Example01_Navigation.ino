@@ -22,6 +22,8 @@
 
 bool startNavigation = true;
 
+bool ledState = false;
+
 // Declare our sensor object
 SfeFPC2534I2C mySensor;
 
@@ -73,7 +75,9 @@ static void on_navigation(int gesture)
         Serial.printf("LEFT\n\r");
         break;
     case CMD_NAV_EVENT_PRESS: {
-        Serial.printf("PRESS\n\r");
+        Serial.printf("PRESS ->{LED %s}\n\r", ledState ? "OFF" : "ON");
+        ledState = !ledState;
+        mySensor.setLED(ledState);
         break;
     }
     case CMD_NAV_EVENT_LONG_PRESS:
