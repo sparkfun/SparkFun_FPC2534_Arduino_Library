@@ -32,6 +32,8 @@ typedef struct
     void (*on_data_transfer_done)(uint8_t *data, size_t size);
     void (*on_mode_change)(uint16_t new_mode);
     void (*on_finger_change)(bool present);
+    void (*on_is_ready_change)(bool isReady);
+
 } sfDevFPC2534Callbacks_t;
 
 class sfDevFPC2534
@@ -235,7 +237,7 @@ class sfDevFPC2534
         _comm = &comm;
         return true;
     }
-    bool appIsReady(void) const
+    bool isReady(void) const
     {
         return (_current_state & STATE_APP_FW_READY) == STATE_APP_FW_READY;
     }

@@ -235,6 +235,12 @@ fpc_result_t sfDevFPC2534::parseStatusCommand(fpc_cmd_hdr_t *cmd_hdr, size_t siz
             _callbacks.on_finger_change(isFingerPresent());
     }
 
+    // isReady change
+    if (isReady() != ((prev_state & STATE_APP_FW_READY) == STATE_APP_FW_READY))
+    {
+        if (_callbacks.on_is_ready_change)
+            _callbacks.on_is_ready_change(isReady());
+    }
     // Is there an error code?
     if (_callbacks.on_status)
         _callbacks.on_status(status->event, status->state);
