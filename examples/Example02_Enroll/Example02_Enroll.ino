@@ -59,6 +59,8 @@ bool drawTheMenu = false;
 //------------------------------------------------------------------------------------
 static void drawMenu()
 {
+    drawTheMenu = false;
+
     Serial.println();
     Serial.println("----------------------------------------------------------------");
     Serial.println(" SparkFun FPC2534 Fingerprint Enrollment Example");
@@ -71,6 +73,7 @@ static void drawMenu()
     Serial.println(" Select an option (press the menu number):");
     Serial.println("\t1)  To Enroll a new fingerprint");
     Serial.println("\t2)  Erase all existing fingerprint templates");
+    Serial.println("\t3)  Validate a fingerprint");
     Serial.println();
 
     Serial.print("> ");
@@ -86,7 +89,7 @@ static void drawMenu()
         if (Serial.available() > 0)
         {
             chIn = Serial.read();
-            if (chIn == '1' || chIn == '2')
+            if (chIn == '1' || chIn == '2' || chIn == '3')
             {
                 Serial.println((char)chIn); // echo the character
                 break;
@@ -127,6 +130,23 @@ static void drawMenu()
                 Serial.printf("[ERROR]\tFailed to delete templates - error: %d\n\r", rc);
         }
     }
+    else if (chIn == '3')
+    {
+        // Delete all templates - do we have any templates?
+        if (numberOfTemplates == 0)
+        {
+            Serial.println("[INFO]\tNo templates to validate against");
+            drawTheMenu = true;
+        }
+        else
+        {
+            Serial.println("[INFO]\t Place a finger on the sensor for validation");
+            fpc_id_type_t id = {.type = ID_TYPE_ALL, .id = 0};
+            fpc_result_t rc = mySensor.requestIdentify(id, 1);
+            if (rc != FPC_RESULT_OK)
+                Serial.printf("[ERROR]\tFailed to start identity - error: %d\n\r", rc);
+        }
+    }
     else
         Serial.println("[ERROR]\tInvalid selection");
 }
@@ -140,12 +160,8 @@ static void check_sensor_status(void)
     {
         mySensor.setLED(false);
         // draw the menu?
-        if (drawTheMenu)
-        {
-            drawTheMenu = false;
-            drawMenu();
-        }
-        else
+        if (!drawTheMenu)
+
         {
             // update our template number
             fpc_result_t rc = mySensor.requestListTemplates();
@@ -189,12 +205,27 @@ static void on_is_ready_change(bool isReady)
             Serial.printf("[ERROR]\tFailed to get template list - error: %d\n\r", rc);
     }
 }
+
+static void on_identify(bool is_match, uint16_t id)
+{
+    Serial.printf("[INFO]\tIdentify Result: %s\n\r", is_match ? "MATCH" : "NO MATCH");
+    if (is_match)
+        Serial.printf("\t\tMatched Template ID: %d\n\r", id);
+    drawTheMenu = true;
+}
 //----------------------------------------------------------------------------
 static void on_enroll(uint8_t feedback, uint8_t samples_remaining)
 {
 
     Serial.printf("[INFO]\t\tEnroll samples remaining: %d, feedback: %s (%d)\n\r", samples_remaining,
                   mySensor.getEnrollFeedBackString(feedback), feedback);
+
+    if (samples_remaining == 0)
+    {
+        Serial.println("[INFO]\tEnroll complete");
+        mySensor.setLED(false);
+        drawTheMenu = true;
+    }
 }
 //----------------------------------------------------------------------------
 // on_list_templates()
@@ -207,7 +238,7 @@ static void on_list_templates(uint16_t num_templates, uint16_t *template_ids)
 
     // lets draw the menu!
     drawTheMenu = true;
-    check_sensor_status();
+    // check_sensor_status();
 }
 
 //----------------------------------------------------------------------------
@@ -222,9 +253,9 @@ static void on_status(uint16_t event, uint16_t state)
     else if (mySensor.currentMode() == STATE_ENROLL)
     {
         if (event == EVENT_FINGER_DETECT)
-            Serial.print("\tFinger Detected -> ");
-        else if (event == EVENT_FINGER_LOST)
-            Serial.println("Removed");
+        {
+            Serial.print("\tFinger Detected -> Remove");
+        }
     }
     // if (event == EVENT_FINGER_LOST)
     // {
@@ -244,6 +275,7 @@ static void on_finger_change(bool present)
 static const sfDevFPC2534Callbacks_t cmd_cb = {.on_error = on_error,
                                                .on_status = on_status,
                                                .on_enroll = on_enroll,
+                                               .on_identify = on_identify,
                                                .on_list_templates = on_list_templates,
                                                .on_finger_change = on_finger_change,
                                                .on_is_ready_change = on_is_ready_change};
@@ -332,6 +364,8 @@ void loop()
     {
         Serial.printf("[ERROR] Processing Error: %d\n\r", rc);
     }
+    else if (drawTheMenu)
+        drawMenu();
 
     delay(200);
 }
