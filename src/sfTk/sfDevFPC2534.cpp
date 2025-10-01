@@ -228,6 +228,14 @@ fpc_result_t sfDevFPC2534::parseStatusCommand(fpc_cmd_hdr_t *cmd_hdr, size_t siz
     }
 
     uint16_t prev_state = _current_state;
+
+    // NOTE: Used events to manage when finger is present - not state field - the op mode completion keys off events.
+    bool prev_finger_present = _finger_present;
+    if (status->event == EVENT_FINGER_DETECT)
+        _finger_present = true;
+    else if (status->event == EVENT_FINGER_LOST)
+        _finger_present = false;
+
     // stash our new state
     _current_state = status->state;
 
@@ -236,7 +244,7 @@ fpc_result_t sfDevFPC2534::parseStatusCommand(fpc_cmd_hdr_t *cmd_hdr, size_t siz
         _callbacks.on_mode_change(currentMode());
 
     // finger present change
-    if (isFingerPresent() != ((prev_state & STATE_FINGER_DOWN) == STATE_FINGER_DOWN))
+    if (isFingerPresent() != prev_finger_present)
     {
         if (_callbacks.on_finger_change)
             _callbacks.on_finger_change(isFingerPresent());

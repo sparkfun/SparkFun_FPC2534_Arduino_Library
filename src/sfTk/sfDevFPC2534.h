@@ -222,7 +222,7 @@ class sfDevFPC2534
     }
     bool isFingerPresent(void) const
     {
-        return ((_current_state & STATE_FINGER_DOWN) == STATE_FINGER_DOWN);
+        return _finger_present;
     }
 
     // for the library to actually work, user provided callbacks are needed ...
