@@ -128,6 +128,8 @@ static void drawMenu()
             fpc_result_t rc = mySensor.requestDeleteTemplate(id);
             if (rc != FPC_RESULT_OK)
                 Serial.printf("[ERROR]\tFailed to delete templates - error: %d\n\r", rc);
+            else
+                numberOfTemplates = 0;
         }
     }
     else if (chIn == '3')
@@ -155,20 +157,28 @@ static void drawMenu()
 
 static void check_sensor_status(void)
 {
+
     // if the sensor is in an "idle", mode, launch navigation mode
-    if (mySensor.currentMode() == 0 && mySensor.isReady())
+    if (mySensor.currentMode() == 0 && mySensor.isReady() && !mySensor.isFingerPresent())
     {
         mySensor.setLED(false);
-        // draw the menu?
-        if (!drawTheMenu)
-
-        {
-            // update our template number
-            fpc_result_t rc = mySensor.requestListTemplates();
-            if (rc != FPC_RESULT_OK)
-                Serial.printf("[ERROR]\tFailed to get template list - error: %d\n\r", rc);
-        }
+        if (drawTheMenu)
+            drawMenu();
     }
+    // {
+    //     mySensor.setLED(false);
+
+    //     // if th finger is not present, updated the templates
+    //     // draw the menu?
+    //     if (!drawTheMenu)
+
+    //     {
+    //         // update our template number
+    //         fpc_result_t rc = mySensor.requestListTemplates();
+    //         if (rc != FPC_RESULT_OK)
+    //             Serial.printf("[ERROR]\tFailed to get template list - error: %d\n\r", rc);
+    //     }
+    // }
 }
 //------------------------------------------------------------------------------------
 // Callback functions the library calls
@@ -223,8 +233,8 @@ static void on_enroll(uint8_t feedback, uint8_t samples_remaining)
     if (samples_remaining == 0)
     {
         Serial.println("[INFO]\tEnroll complete");
-        mySensor.setLED(false);
         drawTheMenu = true;
+        numberOfTemplates++;
     }
 }
 //----------------------------------------------------------------------------
@@ -238,18 +248,22 @@ static void on_list_templates(uint16_t num_templates, uint16_t *template_ids)
 
     // lets draw the menu!
     drawTheMenu = true;
-    // check_sensor_status();
+    check_sensor_status();
 }
 
 //----------------------------------------------------------------------------
 // on_status()
 static void on_status(uint16_t event, uint16_t state)
 {
-    // Serial.printf("[STATUS]\tEvent: 0x%04X, State: 0x%04X\n\r", event, state);
+    Serial.printf("[STATUS]\tEvent: 0x%04X, State: 0x%04X\n\r", event, state);
 
     // if the device is idle, check the sensor status
     if (event == EVENT_NONE)
+    {
+        // Does this make sense?
+        drawTheMenu = true;
         check_sensor_status();
+    }
     else if (mySensor.currentMode() == STATE_ENROLL)
     {
         if (event == EVENT_FINGER_DETECT)
@@ -266,10 +280,16 @@ static void on_status(uint16_t event, uint16_t state)
 
 static void on_finger_change(bool present)
 {
+
+    Serial.printf("[FINGER]\tFinger %s the sensor.\t", present ? "on" : "off");
+    Serial.printf("MODE: 0x%04X, drawMenu: %d\n\r", mySensor.currentMode(), drawTheMenu);
+    // when identify or enroll is finished, the mode isn't complete until the finger is removed.
+    // if the finger is removed and draw menu is set, let's draw the menu
     // if finger off, check the sensor status
-    if (!present)
-        check_sensor_status();
-    // Serial.printf("[FINGER]\tFinger %s the sensor.\n\r", present ? "on" : "off");
+    drawTheMenu = true;
+    check_sensor_status();
+    // if (!present && drawTheMenu && mySensor.isReady())
+    // drawMenu();
 }
 // Define our command callbacks the library will call on events from the sensor
 static const sfDevFPC2534Callbacks_t cmd_cb = {.on_error = on_error,
@@ -363,9 +383,11 @@ void loop()
     if (rc != FPC_RESULT_OK && rc != FPC_PENDING_OPERATION)
     {
         Serial.printf("[ERROR] Processing Error: %d\n\r", rc);
+        // Hmm - reset the sensor and start again?
+        reset_sensor();
     }
-    else if (drawTheMenu)
-        drawMenu();
+    // else
+    //     check_sensor_status();
 
     delay(200);
 }
