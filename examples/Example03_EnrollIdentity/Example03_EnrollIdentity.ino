@@ -14,8 +14,12 @@
 // #define RST_PIN 14
 
 // rp2350 thing plus
-#define IRQ_PIN 11
-#define RST_PIN 12
+// #define IRQ_PIN 11
+// #define RST_PIN 12
+
+// IoT Redboard - RP2350
+#define IRQ_PIN 28
+#define RST_PIN 29
 
 // #define UART_RX 32
 // #define UART_TX 14
