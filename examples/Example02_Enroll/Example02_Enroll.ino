@@ -62,6 +62,8 @@ static void drawMenu()
 {
     drawTheMenu = false;
 
+    mySensor.setLED(false);
+
     Serial.println();
     Serial.println("----------------------------------------------------------------");
     Serial.println(" SparkFun FPC2534 Fingerprint Enrollment Example");
@@ -106,13 +108,14 @@ static void drawMenu()
     if (chIn == '1')
     {
         // lets enroll an new figure
-        Serial.println(
-            "[INFO]\tStarting finger enrollment process - place finger on sensor and remove when progress is reported");
+        Serial.println("[INFO]\tStarting finger enrollment - place finger and remove a finger on the sensor to enroll "
+                       "a fingerprint");
         mySensor.setLED(true);
         fpc_id_type_t id = {.type = ID_TYPE_GENERATE_NEW, .id = 0};
         fpc_result_t rc = mySensor.requestEnroll(id);
         if (rc != FPC_RESULT_OK)
             Serial.printf("[ERROR]\tFailed to start enroll - error: %d\n\r", rc);
+        Serial.print("\t samples remaining 12..");
     }
     else if (chIn == '2')
     {
@@ -203,14 +206,21 @@ static void on_identify(bool is_match, uint16_t id)
 static void on_enroll(uint8_t feedback, uint8_t samples_remaining)
 {
 
-    Serial.printf("[INFO]\t\tEnroll samples remaining: %d, feedback: %s (%d)\n\r", samples_remaining,
-                  mySensor.getEnrollFeedBackString(feedback), feedback);
+    // Serial.printf("[INFO]\t\tEnroll samples remaining: %d, feedback: %s (%d)\n\r", samples_remaining,
+    //               mySensor.getEnrollFeedBackString(feedback), feedback);
 
     if (samples_remaining == 0)
     {
-        Serial.println("[INFO]\tEnroll complete");
+        Serial.println("..done!");
+        delay(500); // user feedback...
+        // Serial.println("[INFO]\tEnroll complete");
         drawTheMenu = true;
         numberOfTemplates++;
+    }
+    else
+    {
+        Serial.print(samples_remaining);
+        Serial.print(".");
     }
 }
 //----------------------------------------------------------------------------
@@ -272,6 +282,10 @@ static void on_status(uint16_t event, uint16_t state)
     else if (mySensor.currentMode() == STATE_IDENTIFY && event == EVENT_IMAGE_READY)
     {
         Serial.println("[INFO]\t\tUnable to perform ID check - remove finger and try again");
+    }
+    else if (mySensor.currentMode() == STATE_ENROLL && event == EVENT_FINGER_LOST)
+    {
+        Serial.print(".");
     }
 }
 
