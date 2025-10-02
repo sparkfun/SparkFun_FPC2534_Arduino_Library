@@ -51,6 +51,7 @@ uint16_t numberOfTemplates = 0;
 // Declare our sensor object
 SfeFPC2534I2C mySensor;
 
+bool isInitialized = false;
 // flag to indicate we need to draw the menu
 bool drawTheMenu = false;
 
@@ -154,33 +155,6 @@ static void drawMenu()
 }
 
 //------------------------------------------------------------------------------------
-
-static void check_sensor_status(void)
-{
-
-    // if the sensor is in an "idle", mode, launch navigation mode
-    if (mySensor.currentMode() == 0 && mySensor.isReady() && !mySensor.isFingerPresent())
-    {
-        mySensor.setLED(false);
-        if (drawTheMenu)
-            drawMenu();
-    }
-    // {
-    //     mySensor.setLED(false);
-
-    //     // if th finger is not present, updated the templates
-    //     // draw the menu?
-    //     if (!drawTheMenu)
-
-    //     {
-    //         // update our template number
-    //         fpc_result_t rc = mySensor.requestListTemplates();
-    //         if (rc != FPC_RESULT_OK)
-    //             Serial.printf("[ERROR]\tFailed to get template list - error: %d\n\r", rc);
-    //     }
-    // }
-}
-//------------------------------------------------------------------------------------
 // Callback functions the library calls
 //------------------------------------------------------------------------------------
 
@@ -192,7 +166,9 @@ static void check_sensor_status(void)
 static void on_error(uint16_t error)
 {
     // hal_set_led_status(HAL_LED_STATUS_ERROR);
-    Serial.printf("[ERROR]\t%d.\n\r", error);
+    Serial.printf("[ERROR]\tSensor Error Code: %d\n\r", error);
+    // this could indicated the sensor communications is out of synch - a reset might be needed
+    reset_sensor();
 }
 
 //----------------------------------------------------------------------------
@@ -216,12 +192,12 @@ static void on_is_ready_change(bool isReady)
     }
 }
 
+//----------------------------------------------------------------------------
 static void on_identify(bool is_match, uint16_t id)
 {
-    Serial.printf("[INFO]\tIdentify Result: %s\n\r", is_match ? "MATCH" : "NO MATCH");
+    Serial.printf("[INFO]\t\tIdentify Result: %s\n\r", is_match ? "MATCH" : "NO MATCH");
     if (is_match)
         Serial.printf("\t\tMatched Template ID: %d\n\r", id);
-    drawTheMenu = true;
 }
 //----------------------------------------------------------------------------
 static void on_enroll(uint8_t feedback, uint8_t samples_remaining)
@@ -244,11 +220,11 @@ static void on_enroll(uint8_t feedback, uint8_t samples_remaining)
 static void on_list_templates(uint16_t num_templates, uint16_t *template_ids)
 {
     numberOfTemplates = num_templates;
-    Serial.printf("[INFO]\tNumber of templates on the sensor: %d\n\r", num_templates);
+    // Serial.printf("[INFO]\t\tNumber of templates on the sensor: %d\n\r", num_templates);
 
+    isInitialized = true;
     // lets draw the menu!
     drawTheMenu = true;
-    check_sensor_status();
 }
 
 //----------------------------------------------------------------------------
@@ -257,47 +233,54 @@ static void on_status(uint16_t event, uint16_t state)
 {
     Serial.printf("[STATUS]\tEvent: 0x%04X, State: 0x%04X\n\r", event, state);
 
-    // if the device is idle, check the sensor status
-    if (event == EVENT_NONE)
+    // Check the system state, to determine when to draw the menu.
+    //
+    // The following is checked:
+    //
+    // 1) End of Enroll or Identify - indicated by:
+    //
+    //     - EVENT_FINGER_LOST event type
+    //     - Sensor is in idel mode
+    //
+    // 2) Completetion of the Delete All Templates command
+    //
+    //     - EVENT_NONE event type
+    //     - Sensor is in idle mode
+    //     - Sensor State is STATE_APP_FW_READY
+    //
+    //     When this command is completed, a EVENT_NONE event is sent, and the
+
+    if (mySensor.currentMode() == 0)
     {
-        // Does this make sense?
-        drawTheMenu = true;
-        check_sensor_status();
-    }
-    else if (mySensor.currentMode() == STATE_ENROLL)
-    {
-        if (event == EVENT_FINGER_DETECT)
+        // end of enroll or identify
+        if (event == EVENT_FINGER_LOST)
+            drawTheMenu = true;
+        // is the app ready?
+        else if ((state & STATE_APP_FW_READY) == STATE_APP_FW_READY)
         {
-            Serial.print("\tFinger Detected -> Remove");
+            // completion of delete all templates
+            if (event == EVENT_NONE)
+                drawTheMenu = true;
+            // the sensor is at idle and has been setup
+            else if (event == EVENT_IDLE && isInitialized)
+                drawTheMenu = true; // just in
         }
     }
-    // if (event == EVENT_FINGER_LOST)
-    // {
-    //     // if we are in identity mode, and finger lost, go back to nav mode
-    //     check_sensor_status();
-    // }
+
+    // if checking identity and we get an image ready event - the device hangs until finger up
+    // Let's prompt the user to remove the finger
+    else if (mySensor.currentMode() == STATE_IDENTIFY && event == EVENT_IMAGE_READY)
+    {
+        Serial.println("[INFO]\t\tUnable to perform ID check - remove finger and try again");
+    }
 }
 
-static void on_finger_change(bool present)
-{
-
-    Serial.printf("[FINGER]\tFinger %s the sensor.\t", present ? "on" : "off");
-    Serial.printf("MODE: 0x%04X, drawMenu: %d\n\r", mySensor.currentMode(), drawTheMenu);
-    // when identify or enroll is finished, the mode isn't complete until the finger is removed.
-    // if the finger is removed and draw menu is set, let's draw the menu
-    // if finger off, check the sensor status
-    drawTheMenu = true;
-    check_sensor_status();
-    // if (!present && drawTheMenu && mySensor.isReady())
-    // drawMenu();
-}
 // Define our command callbacks the library will call on events from the sensor
 static const sfDevFPC2534Callbacks_t cmd_cb = {.on_error = on_error,
                                                .on_status = on_status,
                                                .on_enroll = on_enroll,
                                                .on_identify = on_identify,
                                                .on_list_templates = on_list_templates,
-                                               .on_finger_change = on_finger_change,
                                                .on_is_ready_change = on_is_ready_change};
 
 //------------------------------------------------------------------------------------
@@ -386,8 +369,10 @@ void loop()
         // Hmm - reset the sensor and start again?
         reset_sensor();
     }
-    // else
-    //     check_sensor_status();
+    else if (drawTheMenu)
+    {
+        drawMenu();
+    }
 
     delay(200);
 }
