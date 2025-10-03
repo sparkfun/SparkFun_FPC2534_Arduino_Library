@@ -59,9 +59,9 @@ uint16_t sfDevFPC2534UART::read(uint8_t *data, size_t len)
         return FPC_RESULT_IO_RUNTIME_FAILURE; // I2C bus not initialized
 
     size_t readBytes = _theUART->available();
-    // Serial.printf("uart available %d bytes, requested = %d\n\r", readBytes, size);
+    // Serial.printf("uart available %d bytes, requested = %d\n\r", readBytes, len);
 
-    if (readBytes == 0)
+    if (readBytes == 0 || readBytes < len)
         return FPC_RESULT_IO_NO_DATA; // No data available
 
     readBytes = _theUART->readBytes(data, len);
