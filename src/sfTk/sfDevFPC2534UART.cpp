@@ -17,7 +17,6 @@ sfDevFPC2534UART::sfDevFPC2534UART() : _theUART{nullptr}
 //--------------------------------------------------------------------------------------------
 bool sfDevFPC2534UART::initialize(HardwareSerial &theUART)
 {
-    Serial.printf("UART INitialize\n\r");
     _theUART = &theUART;
 
     return true;
@@ -30,10 +29,7 @@ bool sfDevFPC2534UART::dataAvailable(void)
     if (_theUART == nullptr)
         return false; // UART bus not initialized
 
-    int avail = _theUART->available();
-    Serial.printf("uart available %d bytes\n\r", avail);
-    return avail > 0;
-    // return _theUART->available() > 0;
+    return _theUART->available() > 0;
 }
 
 //--------------------------------------------------------------------------------------------
