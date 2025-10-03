@@ -108,7 +108,7 @@ static void drawMenu()
     if (chIn == '1')
     {
         // lets enroll an new figure
-        Serial.println("[INFO]\tStarting finger enrollment - place finger and remove a finger on the sensor to enroll "
+        Serial.println(" Starting finger enrollment - place finger and remove a finger on the sensor to enroll "
                        "a fingerprint");
         mySensor.setLED(true);
         fpc_id_type_t id = {.type = ID_TYPE_GENERATE_NEW, .id = 0};
@@ -127,7 +127,7 @@ static void drawMenu()
         }
         else
         {
-            Serial.println("[INFO]\tDeleting all templates on the fingerprint sensor");
+            Serial.println(" Deleting all templates on the fingerprint sensor");
             fpc_id_type_t id = {.type = ID_TYPE_ALL, .id = 0};
             fpc_result_t rc = mySensor.requestDeleteTemplate(id);
             if (rc != FPC_RESULT_OK)
@@ -146,7 +146,7 @@ static void drawMenu()
         }
         else
         {
-            Serial.println("[INFO]\t Place a finger on the sensor for validation");
+            Serial.print(" Place a finger on the sensor for validation");
             fpc_id_type_t id = {.type = ID_TYPE_ALL, .id = 0};
             fpc_result_t rc = mySensor.requestIdentify(id, 1);
             if (rc != FPC_RESULT_OK)
@@ -198,9 +198,10 @@ static void on_is_ready_change(bool isReady)
 //----------------------------------------------------------------------------
 static void on_identify(bool is_match, uint16_t id)
 {
-    Serial.printf("[INFO]\t\tIdentify Result: %s\n\r", is_match ? "MATCH" : "NO MATCH");
+    Serial.printf(" %sMATCH %s", is_match ? "" : "NO ");
     if (is_match)
-        Serial.printf("\t\tMatched Template ID: %d\n\r", id);
+        Serial.printf("  {Template ID: %d}", id);
+    Serial.println();
 }
 //----------------------------------------------------------------------------
 static void on_enroll(uint8_t feedback, uint8_t samples_remaining)
@@ -213,8 +214,6 @@ static void on_enroll(uint8_t feedback, uint8_t samples_remaining)
     {
         Serial.println("..done!");
         delay(500); // user feedback...
-        // Serial.println("[INFO]\tEnroll complete");
-        drawTheMenu = true;
         numberOfTemplates++;
     }
     else
@@ -279,6 +278,8 @@ static void on_status(uint16_t event, uint16_t state)
 
     // if checking identity and we get an image ready event - the device hangs until finger up
     // Let's prompt the user to remove the finger
+    // NOTE on UART this is okay - just part of ID sequence - using I2C this seems to hang the process
+    //
     else if (mySensor.currentMode() == STATE_IDENTIFY && event == EVENT_IMAGE_READY)
     {
         Serial.println("[INFO]\t\tUnable to perform ID check - remove finger and try again");
