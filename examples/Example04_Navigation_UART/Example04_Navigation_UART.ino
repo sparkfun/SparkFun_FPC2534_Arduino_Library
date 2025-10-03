@@ -180,7 +180,9 @@ void setup()
     Serial.println();
 
     // Initialize the UART/Serial communication
-    // RP2350 Thing Plus - Serial 1
+
+        // The internal UART buffer can fill up quickly and overflow. As such, increase its size.
+    // RP2350 call.
     Serial1.setFIFOSize(512);
     Serial1.begin(921600, SERIAL_8N1);
     delay(100);
