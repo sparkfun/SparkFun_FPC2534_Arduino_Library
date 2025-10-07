@@ -102,23 +102,23 @@ static void on_version(char *version)
 //
 static void on_navigation(uint16_t gesture)
 {
-    Serial.printf("[NAVIGATION]\t");
+    Serial.print("[NAVIGATION]\t");
     switch (gesture)
     {
     case CMD_NAV_EVENT_NONE:
-        Serial.printf("NONE\n\r");
+        Serial.println("NONE");
         break;
     case CMD_NAV_EVENT_UP:
-        Serial.printf("UP\n\r");
+        Serial.println("UP ^");
         break;
     case CMD_NAV_EVENT_DOWN:
-        Serial.printf("DOWN\n\r");
+        Serial.println("DOWN v");
         break;
     case CMD_NAV_EVENT_RIGHT:
-        Serial.printf("RIGHT\n\r");
+        Serial.println("RIGHT >");
         break;
     case CMD_NAV_EVENT_LEFT:
-        Serial.printf("LEFT\n\r");
+        Serial.println("LEFT <");
         break;
     case CMD_NAV_EVENT_PRESS:
         // Toggle the on-board  LED
@@ -130,11 +130,11 @@ static void on_navigation(uint16_t gesture)
     case CMD_NAV_EVENT_LONG_PRESS:
         // Request the firmware version from the sensor. The sensor will respond
         // with a version event that will call our on_version() function above.
-        Serial.printf("LONG PRESS -> {Get Version}\n\r");
+        Serial.println("LONG PRESS -> {Get Version}");
         mySensor.requestVersion();
         break;
     default:
-        Serial.printf("UNKNOWN\n\r");
+        Serial.println("UNKNOWN");
         break;
     }
 }
@@ -175,13 +175,13 @@ void setup()
     }
     Serial.println();
     Serial.println("----------------------------------------------------------------");
-    Serial.println(" SparkFun FPC2534 Navigation Example - I2C");
+    Serial.println(" SparkFun FPC2534 Navigation Example - UART");
     Serial.println("----------------------------------------------------------------");
     Serial.println();
 
     // Initialize the UART/Serial communication
 
-        // The internal UART buffer can fill up quickly and overflow. As such, increase its size.
+    // The internal UART buffer can fill up quickly and overflow. As such, increase its size.
     // RP2350 call.
     Serial1.setFIFOSize(512);
     Serial1.begin(921600, SERIAL_8N1);
