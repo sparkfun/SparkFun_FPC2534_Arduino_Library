@@ -340,9 +340,6 @@ void setup()
         delay(200);
     Serial.println("[STARTUP]\tSerial1 started for FPC2534 communication.");
 
-    // Initialize the I2C communication
-    Wire.begin();
-
     // Reset the sensor to ensure it's in a known state - by default this also triggers the
     // sensor to send a status message
     reset_sensor();
