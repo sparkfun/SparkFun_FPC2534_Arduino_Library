@@ -249,7 +249,7 @@ static void on_status(uint16_t event, uint16_t state)
     // 1) End of Enroll or Identify - indicated by:
     //
     //     - EVENT_FINGER_LOST event type
-    //     - Sensor is in idel mode
+    //     - Sensor is in idle mode
     //
     // 2) Completetion of the Delete All Templates command
     //
