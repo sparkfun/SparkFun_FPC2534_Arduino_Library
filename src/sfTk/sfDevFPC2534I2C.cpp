@@ -29,14 +29,17 @@ static sfDevFPC2534I2C_IRead *__readHelper = nullptr;
 #endif
 
 // For the ISR interrupt handler
-static volatile bool data_available = false;
+// static volatile bool data_available = false;
+// try a counter
+static volatile uint8_t data_available = 0;
 
 static void the_isr_cb()
 {
     // This is the interrupt callback function
     // It will be called when the IRQ pin goes high
     // We can use this to signal that data is available
-    data_available = true;
+    // data_available = true;
+    data_available++;
 }
 
 sfDevFPC2534I2C::sfDevFPC2534I2C() : _i2cAddress{0}, _i2cPort{nullptr}, _i2cBusNumber{0}, _dataLength{0}, _dataOffset{0}
@@ -67,7 +70,8 @@ bool sfDevFPC2534I2C::initialize(uint8_t address, TwoWire &wirePort, uint8_t i2c
     //
     // TODO: Users can disable this startup status message - if an issue, the user should be able to disable this
     // initial check
-    data_available = true;
+    // data_available = true;
+    data_available = 1;
 
     return true;
 }
@@ -84,7 +88,7 @@ bool sfDevFPC2534I2C::dataAvailable()
     // return rc;
 
     // the data available flag is set, or we have data in the buffer
-    return data_available || _dataLength > 0;
+    return data_available > 0 || _dataLength > 0;
 }
 
 //--------------------------------------------------------------------------------------------
@@ -125,7 +129,11 @@ uint16_t sfDevFPC2534I2C::read(uint8_t *data, size_t len)
     {
 
         // At this point, we are reading in data - clear out the data available flag used by interrupt
-        data_available = false;
+        // data_available = false;
+        // decrement the counter if > 0
+        if (data_available > 0)
+            data_available--;
+
         // read in the packet size.
         _dataLength = __readHelper->readTransferSize(_i2cAddress);
 
