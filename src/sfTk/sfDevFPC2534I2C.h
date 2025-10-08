@@ -44,6 +44,9 @@ class sfDevFPC2534I2C : public sfDevFPC2534IComm
     uint16_t read(uint8_t *data, size_t len);
 
   private:
+    bool fifo_enqueue(uint8_t *data, size_t len);
+    bool fifo_dequeue(uint8_t *data, size_t len);
+
     uint8_t _i2cAddress;
     TwoWire *_i2cPort;
     uint8_t _i2cBusNumber;
@@ -51,7 +54,10 @@ class sfDevFPC2534I2C : public sfDevFPC2534IComm
     // Internal data buffer items
     static constexpr size_t kDataBufferSize = 2048;
 
-    uint16_t _dataLength;
-    uint16_t _dataOffset;
     uint8_t _dataBuffer[kDataBufferSize];
+
+    // using a circular buffer ...
+    uint16_t _dataHead;
+    uint16_t _dataTail;
+    uint16_t _dataCount;
 };

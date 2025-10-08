@@ -31,18 +31,18 @@ static sfDevFPC2534I2C_IRead *__readHelper = nullptr;
 // For the ISR interrupt handler
 // static volatile bool data_available = false;
 // try a counter
-static volatile uint8_t data_available = 0;
+static volatile bool data_available = false;
 
 static void the_isr_cb()
 {
     // This is the interrupt callback function
     // It will be called when the IRQ pin goes high
     // We can use this to signal that data is available
-    // data_available = true;
-    data_available++;
+
+    data_available = true;
 }
 
-sfDevFPC2534I2C::sfDevFPC2534I2C() : _i2cAddress{0}, _i2cPort{nullptr}, _i2cBusNumber{0}, _dataLength{0}, _dataOffset{0}
+sfDevFPC2534I2C::sfDevFPC2534I2C() : _i2cAddress{0}, _i2cPort{nullptr}, _i2cBusNumber{0}
 {
 }
 
@@ -62,43 +62,38 @@ bool sfDevFPC2534I2C::initialize(uint8_t address, TwoWire &wirePort, uint8_t i2c
     pinMode(interruptPin, INPUT);
     attachInterrupt(interruptPin, the_isr_cb, RISING);
 
-    // The system starts up with a status command available and it might not be caught by the interrupt,
-    // So seed this by setting data_available to true.
-    //
-    // Note: Observation shows that if we don't read the initial status command, no
-    // further data is available.
-    //
-    // TODO: Users can disable this startup status message - if an issue, the user should be able to disable this
-    // initial check
-    // data_available = true;
-    data_available = 1;
-
+    // clear out our data buffer
+    clearData();
     return true;
 }
 
 //--------------------------------------------------------------------------------------------
-
+// Is data available to read - either the device is indicating it via an interrupt, or we have
+// data in our internal buffer
+//
 bool sfDevFPC2534I2C::dataAvailable()
 {
     if (_i2cPort == nullptr)
         return false;
 
-    // bool rc = data_available;
-    // data_available = false;
-    // return rc;
-
     // the data available flag is set, or we have data in the buffer
-    return data_available > 0 || _dataLength > 0;
+    return data_available || _dataCount > 0;
 }
 
 //--------------------------------------------------------------------------------------------
+// Clear out the internal data buffer...
+//
 void sfDevFPC2534I2C::clearData()
 {
-    _dataLength = 0;
-    _dataOffset = 0;
+    _dataCount = 0;
+    _dataHead = 0;
+    _dataTail = 0;
+    data_available = false;
 }
 
 //--------------------------------------------------------------------------------------------
+// Write data to the device
+//
 uint16_t sfDevFPC2534I2C::write(const uint8_t *data, size_t len)
 {
     if (_i2cPort == nullptr)
@@ -118,6 +113,51 @@ uint16_t sfDevFPC2534I2C::write(const uint8_t *data, size_t len)
 }
 
 //--------------------------------------------------------------------------------------------
+// Add data to our internal "circular"/FIFO buffer.
+bool sfDevFPC2534I2C::fifo_enqueue(uint8_t *data, size_t len)
+{
+    // adding 0 bytes is success!
+    if (len == 0)
+        return true;
+
+    if (data == nullptr)
+        return false;
+
+    // is there room for this?
+    if (_dataCount + len >= kDataBufferSize)
+        return false;
+
+    // add the data to the buffer
+    for (uint16_t i = 0; i < len; i++)
+    {
+        _dataBuffer[_dataHead] = data[i];
+        _dataHead = (_dataHead + 1) % kDataBufferSize;
+        _dataCount++;
+    }
+
+    return true;
+}
+
+//--------------------------------------------------------------------------------------------
+// Remove data from the internal FIFO buffer
+bool sfDevFPC2534I2C::fifo_dequeue(uint8_t *data, size_t len)
+{
+    if (len == 0)
+        return true;
+
+    if (data == nullptr || _dataCount < len)
+        return false;
+
+    for (uint16_t i = 0; i < len; i++)
+    {
+        data[i] = _dataBuffer[_dataTail];
+        _dataTail = (_dataTail + 1) % kDataBufferSize;
+        _dataCount--;
+    }
+    return true;
+}
+
+//--------------------------------------------------------------------------------------------
 uint16_t sfDevFPC2534I2C::read(uint8_t *data, size_t len)
 {
 
@@ -125,40 +165,45 @@ uint16_t sfDevFPC2534I2C::read(uint8_t *data, size_t len)
     if (_i2cPort == nullptr || __readHelper == nullptr)
         return FPC_RESULT_IO_RUNTIME_FAILURE;
 
-    if (_dataLength == 0)
+    // Serial.printf("Read data entry - data_available flag: %d, request: %d, count: %d\n\r", data_available, len,
+    //               _dataCount);
+    // is new data available from the sensor - always grab new data if we have room
+    if (data_available)
     {
+        // clear flag
+        data_available = false;
 
-        // At this point, we are reading in data - clear out the data available flag used by interrupt
-        // data_available = false;
-        // decrement the counter if > 0
-        if (data_available > 0)
-            data_available--;
+        // how much data is available?
+        uint16_t dataAvailable = __readHelper->readTransferSize(_i2cAddress);
 
-        // read in the packet size.
-        _dataLength = __readHelper->readTransferSize(_i2cAddress);
+        if (dataAvailable > 0)
+        {
+            uint8_t tempBuffer[dataAvailable];
+            dataAvailable = __readHelper->readPayload(dataAvailable, tempBuffer);
 
-        // Serial.printf("I2C read Packet Size - data size: %d\n\r", (int)_dataLength);
-        if (_dataLength == 0)
-            return FPC_RESULT_FAILURE;
+            // Was there an error
+            if (dataAvailable == 0)
+                return FPC_RESULT_IO_BAD_DATA; // error
 
-        _dataLength = __readHelper->readPayload(_dataLength, _dataBuffer);
-
-        // No data returned, no dice
-        if (_dataLength == 0)
-            return FPC_RESULT_IO_BAD_DATA; // error
-
-        _dataOffset = 0;
+            // okay, add this data to our internal buffer
+            if (fifo_enqueue(tempBuffer, (size_t)dataAvailable) == false)
+                return FPC_RESULT_IO_BAD_DATA;
+        }
     }
 
-    if (_dataLength >= len && len > 0)
-    {
-        if (data == nullptr)
-            return FPC_RESULT_INVALID_PARAM;
+    // lets return data to the user...
+    if (data == nullptr)
+        return FPC_RESULT_INVALID_PARAM;
 
-        memcpy(data, _dataBuffer + _dataOffset, len);
-        _dataLength -= len;
-        _dataOffset += len;
-    }
+    if (len == 0)
+        return FPC_RESULT_OK;
+
+    // do we have enough data?
+    if (len > _dataCount)
+        return FPC_RESULT_IO_NO_DATA;
+
+    if (fifo_dequeue(data, len) == false)
+        return FPC_RESULT_IO_BAD_DATA;
 
     return FPC_RESULT_OK;
 }
