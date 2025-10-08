@@ -240,7 +240,7 @@ static void on_list_templates(uint16_t num_templates, uint16_t *template_ids)
 // on_status()
 static void on_status(uint16_t event, uint16_t state)
 {
-    Serial.printf("[STATUS]\tEvent: 0x%04X, State: 0x%04X\n\r", event, state);
+    // Serial.printf("[STATUS]\tEvent: 0x%04X, State: 0x%04X\n\r", event, state);
 
     // Check the system state, to determine when to draw the menu.
     //
@@ -282,7 +282,7 @@ static void on_status(uint16_t event, uint16_t state)
     //
     else if (mySensor.currentMode() == STATE_IDENTIFY && event == EVENT_IMAGE_READY)
     {
-        Serial.println("[INFO]\t\tUnable to perform ID check - remove finger and try again");
+        Serial.println(" -\tUnable to perform ID check - remove finger and try again");
     }
     else if (mySensor.currentMode() == STATE_ENROLL && event == EVENT_FINGER_LOST)
     {
@@ -305,10 +305,14 @@ static const sfDevFPC2534Callbacks_t cmd_cb = {.on_error = on_error,
 //
 void reset_sensor(void)
 {
-    // Reset the sensor by toggling the reset pin
+    // Reset the sensor by toggling the reset pin.
+    //
+    // clear out our data buffer
+    mySensor.clearData();
     pinMode(RST_PIN, OUTPUT);
-    digitalWrite(RST_PIN, LOW);  // Set reset pin low
-    delay(10);                   // Wait for 10 ms
+    digitalWrite(RST_PIN, LOW); // Set reset pin low
+    delay(10);                  // Wait for 10 ms
+
     digitalWrite(RST_PIN, HIGH); // Set reset pin high
     delay(250);                  // Wait for sensor to initialize
 }
