@@ -249,6 +249,11 @@ class sfDevFPC2534
         return _comm->dataAvailable();
     }
 
+    void clearData(void)
+    {
+        if (_comm != nullptr)
+            _comm->clearData();
+    }
     fpc_result_t setLED(bool on = true);
 
     fpc_result_t processNextResponse(bool flushNone);
