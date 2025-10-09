@@ -1,10 +1,51 @@
 
-
+/*
+ * Example using the SparkFun FPC2534 Fingerprint sensor library to demonstrate navigation mode
+ * of the sensor. This example uses the I2C interface to communicate with the sensor.
+ *
+ * Example Setup:
+ *   - Connect the SparkFun Qwiic FPC2534 Fingerprint sensor to your microcontroller using a qwiic cable.
+ *       NOTE: Due to for structure of I2C communications implemented by the FPC2534 sensor, only
+ *             ESP32 and Raspberry Pi RP2 microcontrolles are supported by this Arduion Library.
+ *  - Connect the RST pin on the sensor to a digital pin on your microcontroller. This is used by the
+ *    example to "reset the sensor" on startup.
+ *  - Connect the IRQ pin on the sensor to a digital pin on your microcontroller. The sensor triggers
+ *    an interrupt on this pin when it has data to send.
+ *  - Update the IRQ_PIN and RST_PIN defines below to match the pins you are using.
+ *
+ * Operation:
+ *  - On startup, the example "pings" the sensor address to verify it is present on the I2C bus.
+ *  - If the sensor is found, the example initializes the sensor library and resets the sensor.
+ *    NOTE: A reset appears to be needed after the I2C ping is sent.
+ *  - The sensor object is initialized with the sensor address, interrupt pin, and the Wire object.
+ *    NOTE: The I2C bus number is also provided, to allow the library to perform the low-level I2C commands
+ *          required to read data from the sensor. This is needed due to the way the FPC2534 implements I2C.
+ * - The example registers several callback functions with the sensor library. These functions are called as
+ *   messages are received from the sensor.
+ * - The example places the sensor in navigation mode. In this mode, the sensor detects simple guestures
+ *   such as left, right, up, down swipes, as well as press and long-press events.
+ * - The example prints out messages to the serial console as events are received from the sensor.
+ * - On a press event, the example toggles the on-board LED of the sensor on and off.
+ * - On a long-press event, the example requests the firmware version from the sensor and prints it out when received.
+ *
+ * ---------------------------------------------------------------------------------
+ * Copyright (c) 2025, SparkFun Electronics Inc.
+ *
+ * SPDX-License-Identifier: MIT
+ *
+ *---------------------------------------------------------------------------------
+ */
 #include <Arduino.h>
 #include <Wire.h>
 
 #include "SparkFun_FPC2534.h"
 
+// UPDATE THESE DEFINES TO MATCH YOUR HARDWARE SETUP
+// These are the pins the IRQ and RST pins of the sensor are connected to
+// NOTE: The IRQ pin must be an interrupt-capable pin on your microcontroller
+//
+// Example pins for various SparkFun boards:
+//
 // esp32 thing plus
 // #define IRQ_PIN 16
 // #define RST_PIN 21
@@ -17,22 +58,22 @@
 #define IRQ_PIN 11
 #define RST_PIN 12
 
-// #define UART_RX 32
-// #define UART_TX 14
-
 // State flags to manage sensor startup/state
 bool startNavigation = true;
 
 // Used to track LED state
 bool ledState = false;
 
-// Declare our sensor object
+// Declare our sensor object. Note the I2C version of the sensor class is used.
 SfeFPC2534I2C mySensor;
 
 //------------------------------------------------------------------------------------
 // Callback functions the library calls
 //------------------------------------------------------------------------------------
-
+// Unlike a majority of Arduino Sensor libraries, the FPC2534 library is event/callback driven.
+// The library calls functions you define when events occur. This allows your code to respond
+// to messages from the sensor. These messages are ready by calling the processNextResponse() function
+// in your main loop.
 //----------------------------------------------------------------------------
 // on_error()
 //
@@ -40,8 +81,9 @@ SfeFPC2534I2C mySensor;
 //
 static void on_error(uint16_t error)
 {
-    // hal_set_led_status(HAL_LED_STATUS_ERROR);
-    Serial.printf("[ERROR]\t%d.\n\r", error);
+    // Just print the error code
+    Serial.print("[ERROR] code:\t");
+    Serial.println(error);
 }
 
 //----------------------------------------------------------------------------
@@ -68,11 +110,12 @@ static void on_is_ready_change(bool isReady)
             // error?
             if (rc != FPC_RESULT_OK)
             {
-                Serial.printf("[ERROR]\tFailed to start navigation mode - error: %d\n\r", rc);
+                Serial.print("[ERROR]\tFailed to start navigation mode - error:");
+                Serial.println(rc);
                 return;
             }
 
-            Serial.printf("[SETUP]\tSensor In Navigation mode.\n\r");
+            Serial.println("[SETUP]\tSensor In Navigation mode.");
             Serial.println();
             Serial.println("\t- Swipe Up, Down, Left, Right to see events.");
             Serial.println("\t- Press to toggle LED on/off.");
@@ -92,7 +135,8 @@ static void on_is_ready_change(bool isReady)
 static void on_version(char *version)
 {
     // just print the version string
-    Serial.printf("\t\t%s\n\r", version);
+    Serial.print("\t\t");
+    Serial.println(version);
 }
 
 //----------------------------------------------------------------------------
@@ -102,27 +146,29 @@ static void on_version(char *version)
 //
 static void on_navigation(uint16_t gesture)
 {
-    Serial.printf("[NAVIGATION]\t");
+    Serial.print("[NAVIGATION]\t");
     switch (gesture)
     {
     case CMD_NAV_EVENT_NONE:
-        Serial.printf("NONE\n\r");
+        Serial.println("NONE");
         break;
     case CMD_NAV_EVENT_UP:
-        Serial.printf("UP\n\r");
+        Serial.println("UP");
         break;
     case CMD_NAV_EVENT_DOWN:
-        Serial.printf("DOWN\n\r");
+        Serial.println("DOWN");
         break;
     case CMD_NAV_EVENT_RIGHT:
-        Serial.printf("RIGHT\n\r");
+        Serial.println("RIGHT");
         break;
     case CMD_NAV_EVENT_LEFT:
-        Serial.printf("LEFT\n\r");
+        Serial.println("LEFT");
         break;
     case CMD_NAV_EVENT_PRESS:
         // Toggle the on-board  LED
-        Serial.printf("PRESS -> {LED %s}\n\r", ledState ? "OFF" : "ON");
+        Serial.print("PRESS -> {LED ");
+        Serial.print(ledState ? "OFF" : "ON");
+        Serial.println("}");
         ledState = !ledState;
         mySensor.setLED(ledState);
         break;
@@ -130,16 +176,19 @@ static void on_navigation(uint16_t gesture)
     case CMD_NAV_EVENT_LONG_PRESS:
         // Request the firmware version from the sensor. The sensor will respond
         // with a version event that will call our on_version() function above.
-        Serial.printf("LONG PRESS -> {Get Version}\n\r");
+        Serial.println("LONG PRESS -> {Get Version}");
         mySensor.requestVersion();
         break;
     default:
-        Serial.printf("UNKNOWN\n\r");
+        Serial.println("UNKNOWN");
         break;
     }
 }
 
-// Define our command callbacks the library will call on events from the sensor
+// ------------------------------------------------------------------------------------
+// Fill in the library callback structure with  our callback functions
+//
+// This is passed to the library so it knows what functions to call when events occur.
 static const sfDevFPC2534Callbacks_t cmd_cb = {.on_error = on_error,
                                                .on_version = on_version,
                                                .on_navigation = on_navigation,
@@ -199,7 +248,7 @@ void setup()
     else
         Serial.println("[STARTUP]\tTouch Sensor FPC2534 found on I2C bus");
 
-    // Initialize the sensor library
+    // The sensor is available - Initialize the sensor library
     if (!mySensor.begin(kFPC2534DefaultAddress, Wire, 0, IRQ_PIN))
     {
         Serial.println("[ERROR]\tFPC2534 not found. Check wiring. HALT.");
@@ -227,7 +276,8 @@ void loop()
     fpc_result_t rc = mySensor.processNextResponse();
     if (rc != FPC_RESULT_OK && rc != FPC_PENDING_OPERATION)
     {
-        Serial.printf("[ERROR] Processing Error: %d\n\r", rc);
+        Serial.print("[ERROR] Sensor Processing Error: ");
+        Serial.println(rc);
     }
 
     delay(200);
