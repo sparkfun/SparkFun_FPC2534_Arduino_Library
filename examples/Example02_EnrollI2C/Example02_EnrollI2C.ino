@@ -8,50 +8,89 @@
  *---------------------------------------------------------------------------------
  */
 
+/*
+ * Example using the SparkFun FPC2534 Fingerprint sensor library to demonstrate the fingerprint
+ * enrollment and identification of the sensor.  The example provides the user with the following options:
+ *    - Enroll a new fingerprint
+ *    - Delete all existing fingerprints
+ *    - Validate a fingerprint
+ *
+ * This version of this example uses the I2C interface to communicate with the sensor.
+ *
+ * Example Setup:
+ *   - Connect the SparkFun Qwiic FPC2534 Fingerprint sensor to your microcontroller using a qwiic cable.
+ *       NOTE: Due to for structure of I2C communications implemented by the FPC2534 sensor, only
+ *             ESP32 and Raspberry Pi RP2 microcontrollers are supported by this Arduino Library.
+ *  - Connect the RST pin on the sensor to a digital pin on your microcontroller. This is used by the
+ *    example to "reset the sensor" on startup.
+ *  - Connect the IRQ pin on the sensor to a digital pin on your microcontroller. The sensor triggers
+ *    an interrupt on this pin when it has data to send.
+ *  - Update the IRQ_PIN and RST_PIN defines below to match the pins you are using.
+ *
+ * Operation:
+ *  - On startup, the example "pings" the sensor address to verify it is present on the I2C bus.
+ *  - If the sensor is found, the example initializes the sensor library and resets the sensor.
+ *    NOTE: A reset appears to be needed after the I2C ping is sent.
+ *  - The sensor object is initialized with the sensor address, interrupt pin, and the Wire object.
+ *    NOTE: The I2C bus number is also provided, to allow the library to perform the low-level I2C commands
+ *          required to read data from the sensor. This is needed due to the way the FPC2534 implements I2C.
+ *  - The example registers several callback functions with the sensor library. These functions are called as
+ *    messages are received from the sensor.
+ *  - Once running, the example prevents a menu with the following options:
+ *      1) Enroll a new fingerprint
+ *      2) Erase all existing fingerprint templates
+ *      3) Validate a fingerprint
+ *
+ *   Once an optoin is selected (enter the menu number), the example performs the requested operation.
+ *
+ *  - When registering a new fingerprint, the example prompts the user to place and remove their finger repeatedly
+ *    until the fingerprint is fully enrolled. The example prints out the number of samples remaining as
+ *    reported by the sensor. Normally 12 samples are needed to fully enroll a fingerprint.
+ *  - When deleting all fingerprints, the example sends the delete command to the sensor. If successful,
+ *    the example resets its internal count of enrolled fingerprints to zero.
+ *  - When validating a fingerprint, the example prompts the user to place their finger on the sensor.
+ *    If the fingerprint matches an enrolled fingerprint, the example prints out the ID of the matched
+ *    fingerprint template.
+ *
+ *---------------------------------------------------------------------------------
+ */
+
 #include <Arduino.h>
 #include <Wire.h>
 
 #include "SparkFun_FPC2534.h"
 
-//----------------------------------------------------------------------------------
-// Finger Enrollment Example
+//----------------------------------------------------------------------------
+// User Config -
+//----------------------------------------------------------------------------
+// UPDATE THESE DEFINES TO MATCH YOUR HARDWARE SETUP
 //
-// This sketch demonstrates how to enroll fingerprints using the FPC2534
+// These are the pins the IRQ and RST pins of the sensor are connected to
+// NOTE: The IRQ pin must be an interrupt-capable pin on your microcontroller
 //
-//----------------------------------------------------------------------------------
-// Define the pins being used for operation
-//
-// The FPC2534 uses one pin for reset, and for I2C requires an interrupt pin to signal
-// when data is available to read.
-//
-// The following pin definitions were used for testing - but can be modified as needed.
-//
-// ESP32 thing plus
+// Example pins for various SparkFun boards:
+
+// esp32 thing plus
 // #define IRQ_PIN 16
 // #define RST_PIN 21
 
-// ESP32 thing plus C
+// esp32 thing plus C
 // #define IRQ_PIN 32
 // #define RST_PIN 14
 
-// RP2350 thing plus
+// rp2350 thing plus
 #define IRQ_PIN 11
 #define RST_PIN 12
 
-// IoT RedBoard - RP2350
-// #define IRQ_PIN 28
-// #define RST_PIN 29
-
-// TODO: WTF on the uart / serial layer
-// #define UART_RX 32
-// #define UART_TX 14
-
+// variable used to keep track of the number of enrolled templates on the sensor
 uint16_t numberOfTemplates = 0;
 
 // Declare our sensor object
 SfeFPC2534I2C mySensor;
 
+// flag used to indicate if the sensor has been initialized
 bool isInitialized = false;
+
 // flag to indicate we need to draw the menu
 bool drawTheMenu = false;
 
@@ -60,6 +99,7 @@ bool drawTheMenu = false;
 //------------------------------------------------------------------------------------
 static void drawMenu()
 {
+    // clear the menu flag and "draw"/printout the menu to the terminal
     drawTheMenu = false;
 
     mySensor.setLED(false);
@@ -86,6 +126,7 @@ static void drawMenu()
     while (Serial.available() > 0)
         Serial.read(); // flush any existing input
 
+    // read in the menu selection - if an invalid character is entered, beep and wait for a valid entry.
     uint8_t chIn;
     while (true)
     {
@@ -104,7 +145,9 @@ static void drawMenu()
     }
     Serial.println();
 
-    // Action time
+    // Check what item was selected?
+
+    // Enroll a new fingerprint?
     if (chIn == '1')
     {
         // lets enroll an new figure
@@ -114,8 +157,13 @@ static void drawMenu()
         fpc_id_type_t id = {.type = ID_TYPE_GENERATE_NEW, .id = 0};
         fpc_result_t rc = mySensor.requestEnroll(id);
         if (rc != FPC_RESULT_OK)
-            Serial.printf("[ERROR]\tFailed to start enroll - error: %d\n\r", rc);
-        Serial.print("\t samples remaining 12..");
+        {
+            Serial.print("[ERROR]\tFailed to start enroll - error: ");
+            Serial.println(rc);
+            drawTheMenu = true;
+        }
+        else
+            Serial.print("\t samples remaining 12..");
     }
     else if (chIn == '2')
     {
@@ -131,14 +179,17 @@ static void drawMenu()
             fpc_id_type_t id = {.type = ID_TYPE_ALL, .id = 0};
             fpc_result_t rc = mySensor.requestDeleteTemplate(id);
             if (rc != FPC_RESULT_OK)
-                Serial.printf("[ERROR]\tFailed to delete templates - error: %d\n\r", rc);
+            {
+                Serial.print("[ERROR]\tFailed to delete templates - error: ");
+                Serial.println(rc);
+            }
             else
                 numberOfTemplates = 0;
         }
     }
     else if (chIn == '3')
     {
-        // Delete all templates - do we have any templates?
+        // Check if a fingerprint is enrolled? First, do we have any templates on the sensor?
         if (numberOfTemplates == 0)
         {
             Serial.println("[INFO]\tNo templates to validate against");
@@ -147,10 +198,15 @@ static void drawMenu()
         else
         {
             Serial.print(" Place a finger on the sensor for validation");
+
+            // Send ID request to the sensor - compair to all templates
             fpc_id_type_t id = {.type = ID_TYPE_ALL, .id = 0};
             fpc_result_t rc = mySensor.requestIdentify(id, 1);
             if (rc != FPC_RESULT_OK)
-                Serial.printf("[ERROR]\tFailed to start identity - error: %d\n\r", rc);
+            {
+                Serial.print("[ERROR]\tFailed to start identity - error: ");
+                Serial.println(rc);
+            }
         }
     }
     else
@@ -164,12 +220,13 @@ static void drawMenu()
 //----------------------------------------------------------------------------
 // on_error()
 //
-// Call if the sensor library detects/encounters an error
+// Called if the sensor library detects/encounters an error
 //
 static void on_error(uint16_t error)
 {
-    // hal_set_led_status(HAL_LED_STATUS_ERROR);
-    Serial.printf("[ERROR]\tSensor Error Code: %d\n\r", error);
+    Serial.print("[ERROR]\tSensor Error Code: ");
+    Serial.println(error);
+
     // this could indicated the sensor communications is out of synch - a reset might be needed
     reset_sensor();
 }
@@ -177,7 +234,7 @@ static void on_error(uint16_t error)
 //----------------------------------------------------------------------------
 // on_is_ready_change()
 //
-// Call when the device ready state changes
+// Called when the device ready state changes
 //
 static void on_is_ready_change(bool isReady)
 {
@@ -191,25 +248,39 @@ static void on_is_ready_change(bool isReady)
         // Request the templates on the device ...
         fpc_result_t rc = mySensor.requestListTemplates();
         if (rc != FPC_RESULT_OK)
-            Serial.printf("[ERROR]\tFailed to get template list - error: %d\n\r", rc);
+        {
+            Serial.print("[ERROR]\tFailed to get template list - error: ");
+            Serial.println(rc);
+        }
     }
 }
 
 //----------------------------------------------------------------------------
+// on_identify()
+//
+// Called when the sensor sends an identify result
+//
 static void on_identify(bool is_match, uint16_t id)
 {
-    Serial.printf(" %sMATCH %s", is_match ? "" : "NO ");
+    Serial.print(" MATCH ");
+    Serial.print(is_match ? "" : "NO ");
+
     if (is_match)
-        Serial.printf("  {Template ID: %d}", id);
+    {
+        Serial.print("  {Template ID: ");
+        Serial.print(id);
+        Serial.print("}");
+    }
     Serial.println();
 }
 //----------------------------------------------------------------------------
+// on_enroll()
+//
+// Called when the sensor sends an enroll result
+//
 static void on_enroll(uint8_t feedback, uint8_t samples_remaining)
 {
-
-    // Serial.printf("[INFO]\t\tEnroll samples remaining: %d, feedback: %s (%d)\n\r", samples_remaining,
-    //               mySensor.getEnrollFeedBackString(feedback), feedback);
-
+    // Done?
     if (samples_remaining == 0)
     {
         Serial.println("..done!");
@@ -225,22 +296,27 @@ static void on_enroll(uint8_t feedback, uint8_t samples_remaining)
 //----------------------------------------------------------------------------
 // on_list_templates()
 //
-
+// Called when the sensor sends a list of enrolled templates
+//
 static void on_list_templates(uint16_t num_templates, uint16_t *template_ids)
 {
     numberOfTemplates = num_templates;
-    // Serial.printf("[INFO]\t\tNumber of templates on the sensor: %d\n\r", num_templates);
 
+    // Part of the startup sequence for this demo is to request the list of templates.
+    // Now that we have the number of  templates on the sensor, start normal ops for the demo
     isInitialized = true;
+
     // lets draw the menu!
     drawTheMenu = true;
 }
 
 //----------------------------------------------------------------------------
 // on_status()
+//
+// Called when the sensor sends a status message
+//
 static void on_status(uint16_t event, uint16_t state)
 {
-    // Serial.printf("[STATUS]\tEvent: 0x%04X, State: 0x%04X\n\r", event, state);
 
     // Check the system state, to determine when to draw the menu.
     //
@@ -277,8 +353,9 @@ static void on_status(uint16_t event, uint16_t state)
     }
 
     // if checking identity and we get an image ready event - the device hangs until finger up
+    // This "hanging" happens when using I2C. It's worth noting this is not an issue when using UART
+    //
     // Let's prompt the user to remove the finger
-    // NOTE on UART this is okay - just part of ID sequence - using I2C this seems to hang the process
     //
     else if (mySensor.currentMode() == STATE_IDENTIFY && event == EVENT_IMAGE_READY)
     {
@@ -286,10 +363,14 @@ static void on_status(uint16_t event, uint16_t state)
     }
     else if (mySensor.currentMode() == STATE_ENROLL && event == EVENT_FINGER_LOST)
     {
+        // ... enroll progress  - lets write out a dot...
         Serial.print(".");
     }
 }
 
+//------------------------------------------------------------------------------------
+// Callbacks
+//
 // Define our command callbacks the library will call on events from the sensor
 static const sfDevFPC2534Callbacks_t cmd_cb = {.on_error = on_error,
                                                .on_status = on_status,
@@ -384,7 +465,8 @@ void loop()
     fpc_result_t rc = mySensor.processNextResponse();
     if (rc != FPC_RESULT_OK && rc != FPC_PENDING_OPERATION)
     {
-        Serial.printf("[ERROR] Processing Error: %d\n\r", rc);
+        Serial.print("[ERROR] Processing Error: ");
+        Serial.println(rc);
         // Hmm - reset the sensor and start again?
         reset_sensor();
     }
