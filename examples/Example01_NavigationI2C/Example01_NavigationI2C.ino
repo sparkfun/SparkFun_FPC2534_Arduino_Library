@@ -1,12 +1,19 @@
 
 /*
- * Example using the SparkFun FPC2534 Fingerprint sensor library to demonstrate navigation mode
+ * ---------------------------------------------------------------------------------
+ * Copyright (c) 2025, SparkFun Electronics Inc.
+ *
+ * SPDX-License-Identifier: MIT
+ * ---------------------------------------------------------------------------------
+ */
+
+/* Example using the SparkFun FPC2534 Fingerprint sensor library to demonstrate navigation mode
  * of the sensor. This example uses the I2C interface to communicate with the sensor.
  *
  * Example Setup:
  *   - Connect the SparkFun Qwiic FPC2534 Fingerprint sensor to your microcontroller using a qwiic cable.
  *       NOTE: Due to for structure of I2C communications implemented by the FPC2534 sensor, only
- *             ESP32 and Raspberry Pi RP2 microcontrolles are supported by this Arduion Library.
+ *             ESP32 and Raspberry Pi RP2 microcontrollers are supported by this Arduino Library.
  *  - Connect the RST pin on the sensor to a digital pin on your microcontroller. This is used by the
  *    example to "reset the sensor" on startup.
  *  - Connect the IRQ pin on the sensor to a digital pin on your microcontroller. The sensor triggers
@@ -22,17 +29,13 @@
  *          required to read data from the sensor. This is needed due to the way the FPC2534 implements I2C.
  * - The example registers several callback functions with the sensor library. These functions are called as
  *   messages are received from the sensor.
- * - The example places the sensor in navigation mode. In this mode, the sensor detects simple guestures
+ * - The example places the sensor in navigation mode. In this mode, the sensor detects simple gestures
  *   such as left, right, up, down swipes, as well as press and long-press events.
  * - The example prints out messages to the serial console as events are received from the sensor.
  * - On a press event, the example toggles the on-board LED of the sensor on and off.
  * - On a long-press event, the example requests the firmware version from the sensor and prints it out when received.
  *
- * ---------------------------------------------------------------------------------
- * Copyright (c) 2025, SparkFun Electronics Inc.
- *
- * SPDX-License-Identifier: MIT
- *
+
  *---------------------------------------------------------------------------------
  */
 #include <Arduino.h>
@@ -40,12 +43,16 @@
 
 #include "SparkFun_FPC2534.h"
 
+//----------------------------------------------------------------------------
+// User Config -
+//----------------------------------------------------------------------------
 // UPDATE THESE DEFINES TO MATCH YOUR HARDWARE SETUP
+//
 // These are the pins the IRQ and RST pins of the sensor are connected to
 // NOTE: The IRQ pin must be an interrupt-capable pin on your microcontroller
 //
 // Example pins for various SparkFun boards:
-//
+
 // esp32 thing plus
 // #define IRQ_PIN 16
 // #define RST_PIN 21
