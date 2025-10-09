@@ -17,9 +17,6 @@
 
 #include "sfDevFPC2534IComm.h"
 
-// TODO: With the RP2350/RP2040 port, a "arduino::" namespace is needed for HardwareSerial I belieave.
-//       Note for future port
-
 // uart impl for the FPC2534 communication class
 
 class sfDevFPC2534UART : public sfDevFPC2534IComm

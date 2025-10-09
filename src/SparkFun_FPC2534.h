@@ -1,4 +1,19 @@
 
+/*
+ *---------------------------------------------------------------------------------
+ *
+ * Copyright (c) 2025, SparkFun Electronics Inc.
+ *
+ * SPDX-License-Identifier: MIT
+ *
+ *---------------------------------------------------------------------------------
+ */
+
+// Arduino friendly wrapper for the FPC2534 library functionality.
+//
+// This file provides support for I2C and a Serial/UART interface to the FPC2534 fingerprint sensor.
+
+// Each class is a subclass of the main sfDevFPC2534 class, but provides a specific bus interface.
 
 #pragma once
 
@@ -7,10 +22,11 @@
 #include "sfTk/sfDevFPC2534UART.h"
 
 // Make a Arduino friendly Address define
-
 #define SFE_FPC2534_I2C_ADDRESS kFPC2534DefaultAddress
 
 //--------------------------------------------------------------------------------------------
+// I2C version of the FPC2534 class
+//
 class SfeFPC2534I2C : public sfDevFPC2534
 {
   public:

@@ -30,7 +30,6 @@ static sfDevFPC2534I2C_IRead *__readHelper = nullptr;
 
 // For the ISR interrupt handler
 // static volatile bool data_available = false;
-// try a counter
 static volatile bool data_available = false;
 
 static void the_isr_cb()
@@ -42,6 +41,7 @@ static void the_isr_cb()
     data_available = true;
 }
 
+// --------------------------------------------------------------------------------------------
 sfDevFPC2534I2C::sfDevFPC2534I2C() : _i2cAddress{0}, _i2cPort{nullptr}, _i2cBusNumber{0}
 {
 }
@@ -53,6 +53,7 @@ bool sfDevFPC2534I2C::initialize(uint8_t address, TwoWire &wirePort, uint8_t i2c
     if (__readHelper == nullptr)
         return false;
 
+    // Initialize the I2C read helper - pass in the bus number being used ...
     __readHelper->initialize(i2cBusNumber);
     _i2cAddress = address;
     _i2cPort = &wirePort;
@@ -145,6 +146,7 @@ bool sfDevFPC2534I2C::fifo_dequeue(uint8_t *data, size_t len)
     if (len == 0)
         return true;
 
+    // valid data pointer and enough data? (no partial reads)
     if (data == nullptr || _dataCount < len)
         return false;
 
@@ -165,8 +167,6 @@ uint16_t sfDevFPC2534I2C::read(uint8_t *data, size_t len)
     if (_i2cPort == nullptr || __readHelper == nullptr)
         return FPC_RESULT_IO_RUNTIME_FAILURE;
 
-    // Serial.printf("Read data entry - data_available flag: %d, request: %d, count: %d\n\r", data_available, len,
-    //               _dataCount);
     // is new data available from the sensor - always grab new data if we have room
     if (data_available)
     {
