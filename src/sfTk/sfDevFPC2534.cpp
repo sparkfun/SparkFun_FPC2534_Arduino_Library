@@ -8,6 +8,8 @@
  *---------------------------------------------------------------------------------
  */
 
+// Implementation file for the main class of the library.
+
 #include "sfDevFPC2534.h"
 
 sfDevFPC2534::sfDevFPC2534() : _comm{nullptr}, _callbacks{0}, _current_state{0}, _finger_present{false}
@@ -649,6 +651,7 @@ fpc_result_t sfDevFPC2534::processNextResponse(bool flushNone)
     return parseCommand(framePayload, frameHeader.payload_size);
 }
 
+//--------------------------------------------------------------------------------------------
 fpc_result_t sfDevFPC2534::setLED(bool ledOn)
 {
     if (_comm == nullptr)
@@ -663,6 +666,9 @@ fpc_result_t sfDevFPC2534::setLED(bool ledOn)
     }
     return rc;
 }
+
+//--------------------------------------------------------------------------------------------
+// Clear out any null event
 
 fpc_result_t sfDevFPC2534::flushNoneEvent(void)
 {

@@ -11,7 +11,7 @@
 #pragma once
 
 #include "sfDevFPC2534I2C.h"
-// ESP32 implementation for the FPC2534 I2C communication class - read protocol.
+// RP2 implementation for the FPC2534 I2C communication class - read protocol.
 
 #if defined(ARDUINO_ARCH_RP2040)
 #include <hardware/i2c.h>
@@ -25,6 +25,8 @@ class sfDevFPC2534I2C_Helper : public sfDevFPC2534I2C_IRead
     }
     void initialize(uint8_t i2cBusNumber)
     {
+        // Need to map the provided bus number to the actual i2c port
+
         if (i2cBusNumber == 0)
         {
             // is a port defined?
@@ -61,25 +63,29 @@ class sfDevFPC2534I2C_Helper : public sfDevFPC2534I2C_IRead
         if (!_isInitialized)
             return 0;
 
-        // Seince we want to continue the read operation and not restart, set the restart_on_next flag to false.
+        // Since we want to continue the read operation and not restart, set the restart_on_next flag to false.
         bool restart0 = i2c1->restart_on_next;
 
         i2c1->restart_on_next = false;
         int rc =
             i2c_read_blocking_until(_i2cPort, _device_address, data, len, false, make_timeout_time_ms(_timeOutMillis));
+
+        // restore the restart flag to its previous state
         i2c1->restart_on_next = restart0;
         _pendingStop = false;
 
+        // Problem?
         if (rc == PICO_ERROR_GENERIC || rc == PICO_ERROR_TIMEOUT)
             len = 0;
 
         return len;
     }
 
+    //--------------------------------------------------------------------------------------------
     // For the FPC data, the first two bytes are the length of the data to follow. So this method reads in
     // in the length and returns it. This method is the "start" of a FPC data read operation. It doesn't
     // stop/end the I2C read operation, that is done in the readPayload() method.
-    //--------------------------------------------------------------------------------------------
+
     uint16_t readTransferSize(uint8_t device_address)
     {
         if (!_isInitialized)

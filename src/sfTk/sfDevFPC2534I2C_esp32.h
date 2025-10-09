@@ -8,6 +8,8 @@
  *---------------------------------------------------------------------------------
  */
 
+// I2C helper for the ESP32 platform
+
 #pragma once
 
 #include "sfDevFPC2534I2C.h"
@@ -34,10 +36,11 @@ class sfDevFPC2534I2C_Helper : public sfDevFPC2534I2C_IRead
     //--------------------------------------------------------------------------------------------
     uint16_t readPayload(size_t len, uint8_t *data)
     {
-
         if (!_isInitialized)
             return 0;
 
+        // Create a read command and execute it.  This is a continued read from the previous
+        // readTransferSize() call, so we don't need to send a start condition or the device address.
         esp_err_t err = ESP_OK;
         uint8_t buffer[256] = {0};
 
@@ -67,10 +70,11 @@ class sfDevFPC2534I2C_Helper : public sfDevFPC2534I2C_IRead
         return theSize;
     }
 
+    //--------------------------------------------------------------------------------------------
     // For the FPC data, the first two bytes are the length of the data to follow. So this method reads in
     // in the length and returns it. This method is the "start" of a FPC data read operation. It doesn't
     // stop/end the I2C read operation, that is done in the readPayload() method.
-    //--------------------------------------------------------------------------------------------
+    //
     uint16_t readTransferSize(uint8_t device_address)
     {
         if (!_isInitialized)

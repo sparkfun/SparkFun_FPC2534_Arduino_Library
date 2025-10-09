@@ -8,6 +8,8 @@
  *---------------------------------------------------------------------------------
  */
 
+// Header file for the main class of the library.
+
 #pragma once
 
 // from the FPC SDK
@@ -16,7 +18,8 @@
 #include "sfDevFPC2534IComm.h"
 #include <Arduino.h>
 
-// Define response types for the responce types
+// Define a struct that can hold all the callback functions
+// that the library can call on events from the sensor
 typedef struct
 {
     void (*on_error)(uint16_t error);
@@ -256,35 +259,13 @@ class sfDevFPC2534
     }
     fpc_result_t setLED(bool on = true);
 
+    // Process the next response from the device
+    // If flushNone is true, it will skip over any EVENT_NONE events
     fpc_result_t processNextResponse(bool flushNone);
     fpc_result_t processNextResponse(void)
     {
         return processNextResponse(false);
     };
-
-    static const char *getEnrollFeedBackString(uint8_t feedback)
-    {
-        switch (feedback)
-        {
-        case ENROLL_FEEDBACK_DONE:
-            return "Done";
-        case ENROLL_FEEDBACK_PROGRESS:
-            return "Progress";
-        case ENROLL_FEEDBACK_REJECT_LOW_QUALITY:
-            return "Reject - LowQuality";
-        case ENROLL_FEEDBACK_REJECT_LOW_COVERAGE:
-            return "Reject - LowCoverage";
-        case ENROLL_FEEDBACK_REJECT_LOW_MOBILITY:
-            return "Reject - LowMobility";
-        case ENROLL_FEEDBACK_REJECT_OTHER:
-            return "Reject - Other";
-        case ENROLL_FEEDBACK_PROGRESS_IMMOBILE:
-            return "Progress - Immobile";
-        default:
-            break;
-        }
-        return "Unknown";
-    }
 
   private:
     fpc_result_t sendCommand(fpc_cmd_hdr_t &cmd, size_t size);
@@ -302,7 +283,11 @@ class sfDevFPC2534
     bool checkForNoneEvent(uint8_t *payload, size_t size);
     fpc_result_t flushNoneEvent(void);
 
+    // internal pointer to the communication interface. The comm device being used (I2C, Serial) is abstract
+    // to the library via this interface.
     sfDevFPC2534IComm *_comm = nullptr;
+
+    // Internal copy of the callback functions
     sfDevFPC2534Callbacks_t _callbacks;
 
     // current state of the sensor
