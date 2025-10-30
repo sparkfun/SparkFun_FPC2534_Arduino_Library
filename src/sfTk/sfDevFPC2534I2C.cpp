@@ -10,7 +10,7 @@
 
 #include "sfDevFPC2534I2C.h"
 
-// platform specific read helpers - a system we support?
+// platform specific read helpers - a system we support....
 #if defined(ESP32)
 
 #include "sfDevFPC2534I2C_esp32.h"
@@ -28,6 +28,9 @@ static sfDevFPC2534I2C_IRead *__readHelper = nullptr;
 
 #endif
 
+// When in I2C comm mode, an interrupt pin from the FPC2534 is used to signal when
+// data is available to read. We manage this here.
+//
 // For the ISR interrupt handler
 // static volatile bool data_available = false;
 static volatile bool data_available = false;
@@ -42,6 +45,7 @@ static void the_isr_cb()
 }
 
 // --------------------------------------------------------------------------------------------
+// CTOR
 sfDevFPC2534I2C::sfDevFPC2534I2C() : _i2cAddress{0}, _i2cPort{nullptr}, _i2cBusNumber{0}
 {
 }
@@ -121,6 +125,7 @@ bool sfDevFPC2534I2C::fifo_enqueue(uint8_t *data, size_t len)
     if (len == 0)
         return true;
 
+    // len + null data pointer - no joy
     if (data == nullptr)
         return false;
 
