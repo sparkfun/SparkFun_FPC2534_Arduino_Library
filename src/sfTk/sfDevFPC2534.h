@@ -1,7 +1,9 @@
-/*
- *---------------------------------------------------------------------------------
+/**
+ * @file sfDevFPC2534.h
+ * @brief header file for the SparkFun FPC2534 core implementation. The core implements all logic
+ * and functionality of the FPC2534 sensor, independent of the communication protocol used.
  *
- * Copyright (c) 2025, SparkFun Electronics Inc.
+ * @copyright  (c) 2025, SparkFun Electronics Inc.
  *
  * SPDX-License-Identifier: MIT
  *
@@ -15,11 +17,20 @@
 // from the FPC SDK
 #include "fpc_api.h"
 
+// The interface definition for communication classes
 #include "sfDevFPC2534IComm.h"
+
+// This library is dependent on Arduino framework
 #include <Arduino.h>
 
+// The design pattern that the library implements follows the standard implementation
+// pattern of the FPC SDK - response from the sensor is delivered via callback functions.
+//
 // Define a struct that can hold all the callback functions
 // that the library can call on events from the sensor
+
+/// @struct sfDevFPC2534Callbacks_t
+/// @brief Struct holding all callback function pointers for sfDevFPC2534 events
 typedef struct
 {
     void (*on_error)(uint16_t error);
@@ -39,27 +50,29 @@ typedef struct
 
 } sfDevFPC2534Callbacks_t;
 
+/// @class sfDevFPC2534
+/// @brief Core class implementing FPC2534 functionality independent of communication protocol
 class sfDevFPC2534
 {
   public:
     sfDevFPC2534();
 
     /**
-     * @brief Populate and transfer a CMD_STATUS request.
+     * @brief Request the status from the device.
      *
      * @return Result Code
      */
     fpc_result_t requestStatus(void);
 
     /**
-     * @brief Populate and transfer a CMD_VERSION request.
+     * @brief Request the version from the device.
      *
      * @return Result Code
      */
     fpc_result_t requestVersion(void);
 
     /**
-     * @brief Populate and transfer a CMD_ENROLL request.
+     * @brief Request to start an enrollment operation.
      *
      * id type can be ID_TYPE_SPECIFIED or ID_TYPE_GENERATE_NEW
      *
@@ -69,7 +82,7 @@ class sfDevFPC2534
     fpc_result_t requestEnroll(fpc_id_type_t &id);
 
     /**
-     * @brief Populate and transfer a CMD_IDENTIFY Request.
+     * @brief Request to start an identification operation.
      *
      * id type can be ID_TYPE_SPECIFIED or ID_TYPE_ALL
      *
@@ -81,21 +94,21 @@ class sfDevFPC2534
     fpc_result_t requestIdentify(fpc_id_type_t &id, uint16_t tag);
 
     /**
-     * @brief Populate and transfer a CMD_ABORT request.
+     * @brief Send an abort command to the device.
      *
      * @return Result Code
      */
     fpc_result_t requestAbort(void);
 
     /**
-     * @brief Populate and transfer a CMD_LIST_TEMPLATES request.
+     * @brief Send a list templates command to the device.
      *
      * @return Result Code
      */
     fpc_result_t requestListTemplates(void);
 
     /**
-     * @brief Populate and transfer a CMD_DEL_TEMPLATE request.
+     * @brief Request to delete a template.
      *
      * id type can be ID_TYPE_SPECIFIED or ID_TYPE_ALL
      *
@@ -106,7 +119,7 @@ class sfDevFPC2534
     fpc_result_t requestDeleteTemplate(fpc_id_type_t &id);
 
     /**
-     * @brief Populate and transfer a CMD_RESET request.
+     * @brief Request to send a reset command to the device.
      *
      * @return Result Code
      */
@@ -120,7 +133,7 @@ class sfDevFPC2534
     // fpc_result_t requestCryptoKey(void);
 
     /**
-     * @brief Populate and transfer a CMD_NAVIGATION request.
+     * @brief Start navigation mode on the device.
      *
      * Starts the navigation mode.
      *
@@ -131,7 +144,7 @@ class sfDevFPC2534
     fpc_result_t startNavigationMode(uint8_t orientation);
 
     /**
-     * @brief Populate and transfer a CMD_BIST request.
+     * @brief Start the BuiltIn Self Test. (BIST )
      *
      * Runs the BuiltIn Self Test.
      *
@@ -140,7 +153,7 @@ class sfDevFPC2534
     fpc_result_t startBuiltInSelfTest(void);
 
     /**
-     * @brief Populate and transfer a CMD_GPIO_CONTROL request for SET.
+     * @brief Send GPIO control command to the device.
      *
      * Configure gpio pins.
      *
@@ -153,7 +166,7 @@ class sfDevFPC2534
     fpc_result_t requestSetGPIO(uint8_t pin, uint8_t mode, uint8_t state);
 
     /**
-     * @brief Populate and transfer a CMD_GPIO_CONTROL request for GET.
+     * @brief Respond to a GPIO get state command to the device.
      *
      * Configure gpio pins.
      *
@@ -164,7 +177,7 @@ class sfDevFPC2534
     fpc_result_t requestGetGPIO(uint8_t pin);
 
     /**
-     * @brief Populate and transfer a CMD_SET_SYSTEM_CONFIG request.
+     * @brief Set the system configuration on the device
      *
      * Configure various system settings.
      *
@@ -175,7 +188,7 @@ class sfDevFPC2534
     fpc_result_t setSystemConfig(fpc_system_config_t *cfg);
 
     /**
-     * @brief Populate and transfer a CMD_GET_SYSTEM_CONFIG request.
+     * @brief Request the system configuration from the device
      *
      * Configure various system settings.
      *
@@ -211,7 +224,7 @@ class sfDevFPC2534
     // fpc_result_t requestGetTemplateData(uint16_t id);
 
     /**
-     * @brief Populate and transfer a CMD_FACTORY_RESET request.
+     * @brief Send a factory reset command to the device.
      *
      * Perform factory reset (system config flags must be set to support this).
      *
@@ -219,32 +232,66 @@ class sfDevFPC2534
      */
     fpc_result_t factoryReset(void);
 
+    /**
+     * @brief Get the current operating mode of the device.
+     *
+     * @return Current mode (STATE_ENROLL, STATE_IDENTIFY, STATE_NAVIGATION)
+     */
+
     uint16_t currentMode(void) const
     {
         return _current_state & (STATE_ENROLL | STATE_IDENTIFY | STATE_NAVIGATION);
     }
+
+    /**
+     * @brief Check if a finger is currently present on the sensor.
+     *
+     * @return true - if finger is present
+     * @return false - if no finger is present
+     */
     bool isFingerPresent(void) const
     {
         return _finger_present;
     }
 
+    /**
+     * @brief Set the callback functions for the library to call on events. This is required.
+     *
+     * @param callbacks Struct holding all callback function pointers.
+     */
     // for the library to actually work, user provided callbacks are needed ...
     void setCallbacks(const sfDevFPC2534Callbacks_t &callbacks)
     {
         _callbacks = callbacks;
     }
 
-    // initialize the library
+    /**
+     * @brief initialize the library with a communication interface.
+     *
+     * @param comm The communication interface to use.
+     * @return true - if initialization was successful
+     */
     bool initialize(sfDevFPC2534IComm &comm)
     {
         _comm = &comm;
         return true;
     }
+
+    /**
+     * @brief Check if the device firmware is ready.
+     *
+     * @return true - if device firmware is ready
+     */
     bool isReady(void) const
     {
         return (_current_state & STATE_APP_FW_READY) == STATE_APP_FW_READY;
     }
 
+    /**
+     * @brief Check if data is available to read from the device.
+     *
+     * @return true - if data is available
+     */
     bool isDataAvailable(void) const
     {
         if (_comm == nullptr)
@@ -252,15 +299,32 @@ class sfDevFPC2534
         return _comm->dataAvailable();
     }
 
+    /**
+     * @brief Clear any available data from the device.
+     *
+     */
     void clearData(void)
     {
         if (_comm != nullptr)
             _comm->clearData();
     }
+    /**
+     * @brief Set the state of the on-board LED.
+     *
+     * @param on true to turn LED on, false to turn it off
+     * @return Result Code
+     */
     fpc_result_t setLED(bool on = true);
 
     // Process the next response from the device
     // If flushNone is true, it will skip over any EVENT_NONE events
+
+    /**
+     * @brief Process the next response message from the device. This should be called regularly (in loop)
+     *
+     * @param flushNone  - if true, EVENT_NONE events will be skipped
+     * @return fpc_result_t
+     */
     fpc_result_t processNextResponse(bool flushNone);
     fpc_result_t processNextResponse(void)
     {
@@ -268,6 +332,10 @@ class sfDevFPC2534
     };
 
   private:
+    // NOTE:
+    // In general, messages are received from the device, identified and sent to the
+    // appropriate parser function.
+
     fpc_result_t sendCommand(fpc_cmd_hdr_t &cmd, size_t size);
     fpc_result_t parseStatusCommand(fpc_cmd_hdr_t *, size_t);
     fpc_result_t parseVersionCommand(fpc_cmd_hdr_t *, size_t);

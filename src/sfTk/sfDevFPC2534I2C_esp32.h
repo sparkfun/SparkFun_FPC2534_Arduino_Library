@@ -51,22 +51,20 @@ class sfDevFPC2534I2C_Helper : public sfDevFPC2534I2C_IRead
             return 0;
 
         err = i2c_master_read(handle, (uint8_t *)data, len, I2C_MASTER_LAST_NACK);
-        if (err != ESP_OK)
+        if (err == ESP_OK)
         {
-            goto end;
+
+            i2c_master_stop(handle);
+            err = i2c_master_cmd_begin((i2c_port_t)_i2cBusNumber, handle, _timeOutMillis / portTICK_PERIOD_MS);
+
+            if (err == ESP_OK)
+                theSize = len;
+
+            _pendingStop = false;
+
+            i2c_cmd_link_delete_static(handle);
         }
 
-        i2c_master_stop(handle);
-        err = i2c_master_cmd_begin((i2c_port_t)_i2cBusNumber, handle, _timeOutMillis / portTICK_PERIOD_MS);
-
-        if (err == ESP_OK)
-            theSize = len;
-
-        _pendingStop = false;
-
-        i2c_cmd_link_delete_static(handle);
-
-    end:
         return theSize;
     }
 
@@ -100,34 +98,28 @@ class sfDevFPC2534I2C_Helper : public sfDevFPC2534I2C_IRead
                 return 0;
         }
 
+        // build up our read command
         err = i2c_master_start(handle);
-        if (err != ESP_OK)
+        if (err == ESP_OK)
         {
-            goto end;
+            // address
+            err = i2c_master_write_byte(handle, device_address << 1 | I2C_MASTER_READ, true);
+            if (err == ESP_OK)
+            {
+                // read the size
+                err = i2c_master_read(handle, (uint8_t *)&theSize, sizeof(theSize), I2C_MASTER_ACK);
+                if (err == ESP_OK)
+                {
+                    // run the command
+                    err = i2c_master_cmd_begin((i2c_port_t)_i2cBusNumber, handle, _timeOutMillis / portTICK_PERIOD_MS);
+
+                    if (err != ESP_OK)
+                        theSize = 0;
+                    else
+                        _pendingStop = true;
+                }
+            }
         }
-
-        err = i2c_master_write_byte(handle, device_address << 1 | I2C_MASTER_READ, true);
-        if (err != ESP_OK)
-        {
-            goto end;
-        }
-
-        err = i2c_master_read(handle, (uint8_t *)&theSize, sizeof(theSize), I2C_MASTER_ACK);
-        if (err != ESP_OK)
-        {
-            goto end;
-        }
-
-        err = i2c_master_cmd_begin((i2c_port_t)_i2cBusNumber, handle, _timeOutMillis / portTICK_PERIOD_MS);
-
-        if (err != ESP_OK)
-        {
-            theSize = 0;
-        }
-        else
-            _pendingStop = true;
-
-    end:
         i2c_cmd_link_delete_static(handle);
 
         return theSize;

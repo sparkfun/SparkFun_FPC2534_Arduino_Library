@@ -1,20 +1,22 @@
-/*
- *---------------------------------------------------------------------------------
+/**
+ * @file sfDevFPC2534.cpp
+ * @brief Implementation of the sfDevFPC2534 device class. This contains all core logic of the library
  *
- * Copyright (c) 2025, SparkFun Electronics Inc.
+ * @copyright Copyright (c) 2025, SparkFun Electronics Inc.
  *
  * SPDX-License-Identifier: MIT
- *
- *---------------------------------------------------------------------------------
  */
 
 // Implementation file for the main class of the library.
 
 #include "sfDevFPC2534.h"
 
+//--------------------------------------------------------------------------------------------
+// Constructor (ctor)
 sfDevFPC2534::sfDevFPC2534() : _comm{nullptr}, _callbacks{0}, _current_state{0}, _finger_present{false}
 {
 }
+
 //--------------------------------------------------------------------------------------------
 // Internal send command method...
 fpc_result_t sfDevFPC2534::sendCommand(fpc_cmd_hdr_t &cmd, size_t size)
@@ -29,6 +31,7 @@ fpc_result_t sfDevFPC2534::sendCommand(fpc_cmd_hdr_t &cmd, size_t size)
     frameHeader.flags = FPC_FRAME_FLAG_SENDER_HOST;
     frameHeader.payload_size = (uint16_t)size;
 
+    // send message header, then payload
     fpc_result_t rc = _comm->write((uint8_t *)&frameHeader, sizeof(fpc_frame_hdr_t));
 
     if (rc == FPC_RESULT_OK)
@@ -209,6 +212,8 @@ fpc_result_t sfDevFPC2534::parseStatusCommand(fpc_cmd_hdr_t *cmd_hdr, size_t siz
         return FPC_RESULT_INVALID_PARAM;
 
     fpc_cmd_status_response_t *status = (fpc_cmd_status_response_t *)cmd_hdr;
+
+    // TODO: Implement secure interface handling
     // if (status->state & STATE_SECURE_INTERFACE)
     // {
     //     /* The device supports secure interface. Set the flag to indicate
@@ -219,8 +224,11 @@ fpc_result_t sfDevFPC2534::parseStatusCommand(fpc_cmd_hdr_t *cmd_hdr, size_t siz
     // {
     // use_secure_interface = false;
     // }
+
+    // Debug output - this is helpful when developing
     // Serial.printf("[STATUS]\tEvent: 0x%04X, State: 0x%04X, AppFail: 0x%04X\n\r", status->event, status->state,
     //               status->app_fail_code);
+    //
     // if we have an error code, just call the error callback and exit
     if (status->app_fail_code != 0)
     {
@@ -241,6 +249,8 @@ fpc_result_t sfDevFPC2534::parseStatusCommand(fpc_cmd_hdr_t *cmd_hdr, size_t siz
     // stash our new state
     _current_state = status->state;
 
+    // abstract mode change callbacks anyone? If something changed and we have a callback, call it
+    //
     // mode change
     if (currentMode() != (prev_state & (STATE_ENROLL | STATE_IDENTIFY | STATE_NAVIGATION)) && _callbacks.on_mode_change)
         _callbacks.on_mode_change(currentMode());
@@ -258,6 +268,7 @@ fpc_result_t sfDevFPC2534::parseStatusCommand(fpc_cmd_hdr_t *cmd_hdr, size_t siz
         if (_callbacks.on_is_ready_change)
             _callbacks.on_is_ready_change(isReady());
     }
+
     // Is there an error code?
     if (_callbacks.on_status)
         _callbacks.on_status(status->event, status->state);
@@ -379,6 +390,10 @@ fpc_result_t sfDevFPC2534::parseBISTCommand(fpc_cmd_hdr_t *cmd_hdr, size_t size)
     return FPC_RESULT_OK;
 }
 
+// --------------------------------------------------------------------------------------------
+// TOOD: Implement data transfer commands. These allow data to be recorded from one device and then
+//       sent to another device for enrollment or identification.
+//
 // static fpc_result_t parse_cmd_get_template_data(fpc_cmd_hdr_t *cmd, uint16_t size)
 // {
 //     fpc_result_t result = FPC_RESULT_OK;
@@ -518,6 +533,8 @@ fpc_result_t sfDevFPC2534::parseBISTCommand(fpc_cmd_hdr_t *cmd_hdr, size_t size)
 // }
 
 //--------------------------------------------------------------------------------------------
+// Main command parser - routes to specific command parsers
+//
 fpc_result_t sfDevFPC2534::parseCommand(uint8_t *payload, size_t size)
 {
     if (payload == nullptr || size == 0)
@@ -577,7 +594,8 @@ fpc_result_t sfDevFPC2534::parseCommand(uint8_t *payload, size_t size)
 
     return FPC_RESULT_OK;
 }
-
+//--------------------------------------------------------------------------------------------
+// Check if this is a NONE event status response
 bool sfDevFPC2534::checkForNoneEvent(uint8_t *payload, size_t size)
 {
     if (payload == nullptr || size == 0)
@@ -600,12 +618,14 @@ bool sfDevFPC2534::checkForNoneEvent(uint8_t *payload, size_t size)
 }
 
 //--------------------------------------------------------------------------------------------
+// Called to pump the message queue - should be called regularly (in loop)
+//
 fpc_result_t sfDevFPC2534::processNextResponse(bool flushNone)
 {
     if (_comm == nullptr)
         return FPC_RESULT_WRONG_STATE;
 
-    // Check if data is available - no data, just continue
+    // Check if data is available - no data - no dice, just continue
     if (!_comm->dataAvailable())
         return FPC_RESULT_OK;
 
@@ -623,6 +643,7 @@ fpc_result_t sfDevFPC2534::processNextResponse(bool flushNone)
     else if (rc != FPC_RESULT_OK)
         return rc;
 
+    // Debug output - helpful when developing
     // Serial.printf("Frame Header: ver 0x%04X, type 0x%02X, flags 0x%04X, payload size %d\n\r", frameHeader.version,
     //               frameHeader.type, frameHeader.flags, frameHeader.payload_size);
 
@@ -648,10 +669,12 @@ fpc_result_t sfDevFPC2534::processNextResponse(bool flushNone)
             return FPC_RESULT_OK;
     }
 
+    // parse the command
     return parseCommand(framePayload, frameHeader.payload_size);
 }
 
 //--------------------------------------------------------------------------------------------
+// Set the on-board LED state
 fpc_result_t sfDevFPC2534::setLED(bool ledOn)
 {
     if (_comm == nullptr)
@@ -668,8 +691,8 @@ fpc_result_t sfDevFPC2534::setLED(bool ledOn)
 }
 
 //--------------------------------------------------------------------------------------------
-// Clear out any null event
-
+// Clear out any NONE events
+//
 fpc_result_t sfDevFPC2534::flushNoneEvent(void)
 {
     if (_comm == nullptr)
