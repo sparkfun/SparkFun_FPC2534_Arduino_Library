@@ -193,7 +193,7 @@ void setup()
 #if defined(ARDUINO_ARCH_RP2040)
     Serial1.setFIFOSize(512);
 #elif defined(ESP32)
-    Serial1.setBufferSize(512);
+    Serial1.setRxBufferSize(512);
 #endif
 
     // Setup Serial1 for communication with the FPC2534
