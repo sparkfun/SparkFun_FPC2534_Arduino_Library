@@ -146,11 +146,9 @@ static void on_navigation(uint16_t gesture)
     }
 }
 
-// Define our command callbacks the library will call on events from the sensor
-static const sfDevFPC2534Callbacks_t cmd_cb = {.on_error = on_error,
-                                               .on_version = on_version,
-                                               .on_navigation = on_navigation,
-                                               .on_is_ready_change = on_is_ready_change};
+// Define our command callback structure - initialize to 0/null.
+// assigin our callback methods in setup
+static sfDevFPC2534Callbacks_t cmd_cb = {0};
 
 //------------------------------------------------------------------------------------
 // reset_sensor()
@@ -185,6 +183,12 @@ void setup()
     Serial.println(" SparkFun FPC2534 Navigation Example - UART");
     Serial.println("----------------------------------------------------------------");
     Serial.println();
+
+    // Setup our callback functions structure
+    cmd_cb.on_error = on_error;
+    cmd_cb.on_version = on_version;
+    cmd_cb.on_navigation = on_navigation;
+    cmd_cb.on_is_ready_change = on_is_ready_change;
 
     // Initialize the UART/Serial communication
 
