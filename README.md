@@ -26,6 +26,16 @@ This library provides a message-based, easy to use interface that enables finger
 - Trackpad like functionalality for simple, finger-based navigation
 - Application integration via a variety of communication methods
 
+### Functionality not Supported by the Library
+
+Features that the FPC2534 supports, but are not currently implemented by this library include:
+
+- Encrypted communication. When enabled, the communication to/from the FPC2543 is encrypted by a user provided key. Once this key is set in the device, it cannot be changed.
+- Reading and writing template data values to/from the sensor.
+- USB Interface - while the SparkFun FPC2534 provides a USB-C interface (enabled via jumper settings), this library doesn't support this interface. This mode of communication is primarily used for computer (non-microcontroller) interaction with the device.
+
+If any of these advanced features are desired for use, an implementation can be found within the Fingerprints FPC2543 SDK, which is available on the [Fingerprints Website](https://www.fpc.com/products/documentation/).
+
 ### Communication
 
 The operation of the FPC2534AP is performed by a messaging protocol implemented on the device. A client application sends message requests to the sensor and recieves responses to the request made.
