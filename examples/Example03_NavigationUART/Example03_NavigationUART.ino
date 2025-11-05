@@ -41,7 +41,10 @@ SfeFPC2534UART mySensor;
 static void on_error(uint16_t error)
 {
     // hal_set_led_status(HAL_LED_STATUS_ERROR);
-    Serial.printf("[ERROR]\t%d - 0x%X\n\r", error, error);
+    Serial.print("[ERROR]\t");
+    Serial.print(error);
+    Serial.print(" - 0x");
+    Serial.println(error, HEX);
 }
 
 //----------------------------------------------------------------------------
@@ -68,11 +71,12 @@ static void on_is_ready_change(bool isReady)
             // error?
             if (rc != FPC_RESULT_OK)
             {
-                Serial.printf("[ERROR]\tFailed to start navigation mode - error: %d\n\r", rc);
+                Serial.print("[ERROR]\tFailed to start navigation mode - error: ");
+                Serial.println(rc);
                 return;
             }
 
-            Serial.printf("[SETUP]\tSensor In Navigation mode.\n\r");
+            Serial.println("[SETUP]\tSensor In Navigation mode");
             Serial.println();
             Serial.println("\t- Swipe Up, Down, Left, Right to see events.");
             Serial.println("\t- Press to toggle LED on/off.");
@@ -92,7 +96,8 @@ static void on_is_ready_change(bool isReady)
 static void on_version(char *version)
 {
     // just print the version string
-    Serial.printf("\t\t%s\n\r", version);
+    Serial.print("\t\t");
+    Serial.println(version);
 }
 
 //----------------------------------------------------------------------------
@@ -122,7 +127,9 @@ static void on_navigation(uint16_t gesture)
         break;
     case CMD_NAV_EVENT_PRESS:
         // Toggle the on-board  LED
-        Serial.printf("PRESS -> {LED %s}\n\r", ledState ? "OFF" : "ON");
+        Serial.print("PRESS -> {LED");
+        Serial.print(ledState ? "OFF" : "ON");
+        Serial.println("}");
         ledState = !ledState;
         mySensor.setLED(ledState);
         break;
@@ -182,8 +189,14 @@ void setup()
     // Initialize the UART/Serial communication
 
     // The internal UART buffer can fill up quickly and overflow. As such, increase its size.
-    // RP2350 call.
+    // This example is supporting ESP32 and RP2040 based boards - adjust as needed for other platforms.
+#if defined(ARDUINO_ARCH_RP2040)
     Serial1.setFIFOSize(512);
+#elif defined(ESP32)
+    Serial1.setBufferSize(512);
+#endif
+
+    // Setup Serial1 for communication with the FPC2534
     Serial1.begin(921600, SERIAL_8N1);
     delay(100);
     for (uint32_t startMS = millis(); !Serial1 && (millis() - startMS < 5000);) // Wait for the serial port to be ready
@@ -222,7 +235,8 @@ void loop()
     fpc_result_t rc = mySensor.processNextResponse();
     if (rc != FPC_RESULT_OK && rc != FPC_PENDING_OPERATION)
     {
-        Serial.printf("[ERROR] Processing Error: %d\n\r", rc);
+        Serial.print("[ERROR] Processing Error: ");
+        Serial.println(rc);
     }
 
     delay(200);
