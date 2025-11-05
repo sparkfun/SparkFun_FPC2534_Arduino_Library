@@ -65,16 +65,17 @@
 //----------------------------------------------------------------------------
 // UPDATE THESE DEFINES TO MATCH YOUR HARDWARE SETUP
 //
-// These are the pins the IRQ and RST pins of the sensor are connected to
+// These are the pins the IRQ and RST pins of the sensor are connected to the microcontroller.
+//
 // NOTE: The IRQ pin must be an interrupt-capable pin on your microcontroller
 //
 // Example pins for various SparkFun boards:
-
-// esp32 thing plus
+//
+// ESP32 thing plus
 // #define IRQ_PIN 16
 // #define RST_PIN 21
 
-// esp32 thing plus C
+// ESP32 thing plus C
 // #define IRQ_PIN 32
 // #define RST_PIN 14
 
@@ -154,7 +155,9 @@ static void drawMenu()
         Serial.println(" Starting finger enrollment - place finger and remove a finger on the sensor to enroll "
                        "a fingerprint");
         mySensor.setLED(true);
-        fpc_id_type_t id = {.type = ID_TYPE_GENERATE_NEW, .id = 0};
+        fpc_id_type_t id = {0};
+        id.type = ID_TYPE_GENERATE_NEW;
+        id.id = 0;
         fpc_result_t rc = mySensor.requestEnroll(id);
         if (rc != FPC_RESULT_OK)
         {
@@ -176,7 +179,9 @@ static void drawMenu()
         else
         {
             Serial.println(" Deleting all templates on the fingerprint sensor");
-            fpc_id_type_t id = {.type = ID_TYPE_ALL, .id = 0};
+            fpc_id_type_t id = {0};
+            id.type = ID_TYPE_ALL;
+            id.id = 0;
             fpc_result_t rc = mySensor.requestDeleteTemplate(id);
             if (rc != FPC_RESULT_OK)
             {
@@ -200,7 +205,10 @@ static void drawMenu()
             Serial.print(" Place a finger on the sensor for validation");
 
             // Send ID request to the sensor - compair to all templates
-            fpc_id_type_t id = {.type = ID_TYPE_ALL, .id = 0};
+            fpc_id_type_t id = {0};
+            id.type = ID_TYPE_ALL;
+            id.id = 0;
+
             fpc_result_t rc = mySensor.requestIdentify(id, 1);
             if (rc != FPC_RESULT_OK)
             {
@@ -371,13 +379,8 @@ static void on_status(uint16_t event, uint16_t state)
 //------------------------------------------------------------------------------------
 // Callbacks
 //
-// Define our command callbacks the library will call on events from the sensor
-static const sfDevFPC2534Callbacks_t cmd_cb = {.on_error = on_error,
-                                               .on_status = on_status,
-                                               .on_enroll = on_enroll,
-                                               .on_identify = on_identify,
-                                               .on_list_templates = on_list_templates,
-                                               .on_is_ready_change = on_is_ready_change};
+// Define our command callbacks structure - callback methods are assigned in setup
+static sfDevFPC2534Callbacks_t cmd_cb = {0};
 
 //------------------------------------------------------------------------------------
 // reset_sensor()
@@ -445,6 +448,14 @@ void setup()
             delay(1000);
     }
     Serial.println("[STARTUP]\tFPC2534 initialized.");
+
+    // setup our callback functions structure
+    cmd_cb.on_error = on_error;
+    cmd_cb.on_status = on_status;
+    cmd_cb.on_enroll = on_enroll;
+    cmd_cb.on_identify = on_identify;
+    cmd_cb.on_list_templates = on_list_templates;
+    cmd_cb.on_is_ready_change = on_is_ready_change;
 
     // set the callbacks for the sensor library to call
     mySensor.setCallbacks(cmd_cb);

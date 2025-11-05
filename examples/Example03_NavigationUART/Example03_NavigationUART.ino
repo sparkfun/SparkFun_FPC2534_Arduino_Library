@@ -20,6 +20,13 @@
 // #define UART_RX 32
 // #define UART_TX 14
 
+//----------------------------------------------------------------------------------
+// NOTE:
+// This example makes use of the Serial1 hardware serial port for communication with the FPC2534. If the board
+// being used does not have a Serial1 port, you will need to modify the code to use SoftwareSerial or another
+// serial port available on your board.
+//
+
 // State flags to manage sensor startup/state
 bool startNavigation = true;
 

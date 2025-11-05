@@ -21,31 +21,30 @@
 //----------------------------------------------------------------------------------
 // Define the pins being used for operation
 //
-// The FPC2534 uses one pin for reset, and for I2C requires an interrupt pin to signal
-// when data is available to read.
+// The FPC2534 uses one pin for reset, No interrupt pin is needed for UART operation
 //
 // The following pin definitions were used for testing - but can be modified as needed.
 //
 // ESP32 thing plus
-// #define IRQ_PIN 16
 // #define RST_PIN 21
 
 // ESP32 thing plus C
-// #define IRQ_PIN 32
 // #define RST_PIN 14
 
 // RP2350 thing plus
-// #define IRQ_PIN 11
 #define RST_PIN 12
 
 // IoT RedBoard - RP2350
-// #define IRQ_PIN 28
 // #define RST_PIN 29
 
-// TODO: WTF on the uart / serial layer
-// #define UART_RX 32
-// #define UART_TX 14
+//----------------------------------------------------------------------------------
+// NOTE:
+// This example makes use of the Serial1 hardware serial port for communication with the FPC2534. If the board
+// being used does not have a Serial1 port, you will need to modify the code to use SoftwareSerial or another
+// serial port available on your board.
+//
 
+// variable used to keep track of the number of enrolled templates on the sensor
 uint16_t numberOfTemplates = 0;
 
 // Declare our sensor object
@@ -111,11 +110,17 @@ static void drawMenu()
         Serial.println(" Starting finger enrollment - place finger and remove a finger on the sensor to enroll "
                        "a fingerprint");
         mySensor.setLED(true);
-        fpc_id_type_t id = {.type = ID_TYPE_GENERATE_NEW, .id = 0};
+        fpc_id_type_t id;
+        id.type = ID_TYPE_GENERATE_NEW;
+        id.id = 0;
         fpc_result_t rc = mySensor.requestEnroll(id);
         if (rc != FPC_RESULT_OK)
-            Serial.printf("[ERROR]\tFailed to start enroll - error: %d\n\r", rc);
-        Serial.print("\t samples remaining 12..");
+        {
+            Serial.print("[ERROR]\tFailed to start enroll - error: ");
+            Serial.println(rc);
+        }
+        else
+            Serial.print("\t samples remaining 12..");
     }
     else if (chIn == '2')
     {
@@ -128,10 +133,15 @@ static void drawMenu()
         else
         {
             Serial.println(" Deleting all templates on the fingerprint sensor");
-            fpc_id_type_t id = {.type = ID_TYPE_ALL, .id = 0};
+            fpc_id_type_t id = {0};
+            id.type = ID_TYPE_ALL;
+            id.id = 0;
             fpc_result_t rc = mySensor.requestDeleteTemplate(id);
             if (rc != FPC_RESULT_OK)
-                Serial.printf("[ERROR]\tFailed to delete templates - error: %d\n\r", rc);
+            {
+                Serial.print("[ERROR]\tFailed to delete templates - error: ");
+                Serial.println(rc);
+            }
             else
                 numberOfTemplates = 0;
         }
@@ -147,10 +157,15 @@ static void drawMenu()
         else
         {
             Serial.print(" Place a finger on the sensor for validation...");
-            fpc_id_type_t id = {.type = ID_TYPE_ALL, .id = 0};
+            fpc_id_type_t id = {0};
+            id.type = ID_TYPE_ALL;
+            id.id = 0;
             fpc_result_t rc = mySensor.requestIdentify(id, 1);
             if (rc != FPC_RESULT_OK)
-                Serial.printf("[ERROR]\tFailed to start identity - error: %d\n\r", rc);
+            {
+                Serial.print("[ERROR]\tFailed to start identity - error: ");
+                Serial.println(rc);
+            }
         }
     }
     else
@@ -169,7 +184,8 @@ static void drawMenu()
 static void on_error(uint16_t error)
 {
     // hal_set_led_status(HAL_LED_STATUS_ERROR);
-    Serial.printf("[ERROR]\tSensor Error Code: %d\n\r", error);
+    Serial.print("[ERROR]\tSensor Error Code: ");
+    Serial.println(error);
     // this could indicated the sensor communications is out of synch - a reset might be needed
     reset_sensor();
 }
@@ -191,24 +207,30 @@ static void on_is_ready_change(bool isReady)
         // Request the templates on the device ...
         fpc_result_t rc = mySensor.requestListTemplates();
         if (rc != FPC_RESULT_OK)
-            Serial.printf("[ERROR]\tFailed to get template list - error: %d\n\r", rc);
+        {
+            Serial.println("[ERROR]\tFailed to get template list - error: ");
+            Serial.println(rc);
+        }
     }
 }
 
 //----------------------------------------------------------------------------
 static void on_identify(bool is_match, uint16_t id)
 {
-    Serial.printf(" %sMATCH %s", is_match ? "" : "NO ");
+
+    Serial.print(is_match ? " NO " : " ");
+    Serial.print("MATCH");
     if (is_match)
-        Serial.printf("  {Template ID: %d}", id);
+    {
+        Serial.print("  {Template ID: ");
+        Serial.print(id);
+        Serial.print("}");
+    }
     Serial.println();
 }
 //----------------------------------------------------------------------------
 static void on_enroll(uint8_t feedback, uint8_t samples_remaining)
 {
-
-    // Serial.printf("[INFO]\t\tEnroll samples remaining: %d, feedback: %s (%d)\n\r", samples_remaining,
-    //               mySensor.getEnrollFeedBackString(feedback), feedback);
 
     if (samples_remaining == 0)
     {
@@ -229,7 +251,6 @@ static void on_enroll(uint8_t feedback, uint8_t samples_remaining)
 static void on_list_templates(uint16_t num_templates, uint16_t *template_ids)
 {
     numberOfTemplates = num_templates;
-    // Serial.printf("[INFO]\t\tNumber of templates on the sensor: %d\n\r", num_templates);
 
     isInitialized = true;
     // lets draw the menu!
@@ -240,7 +261,6 @@ static void on_list_templates(uint16_t num_templates, uint16_t *template_ids)
 // on_status()
 static void on_status(uint16_t event, uint16_t state)
 {
-    // Serial.printf("[STATUS]\tEvent: 0x%04X, State: 0x%04X\n\r", event, state);
 
     // Check the system state, to determine when to draw the menu.
     //
@@ -275,28 +295,14 @@ static void on_status(uint16_t event, uint16_t state)
                 drawTheMenu = true; // just in
         }
     }
-
-    // if checking identity and we get an image ready event - the device hangs until finger up
-    // Let's prompt the user to remove the finger
-    // NOTE on UART this is okay - just part of ID sequence - using I2C this seems to hang the process
-    //
-    // else if (mySensor.currentMode() == STATE_IDENTIFY && event == EVENT_IMAGE_READY)
-    // {
-    //     Serial.println("[INFO]\t\tUnable to perform ID check - remove finger and try again");
-    // }
     else if (mySensor.currentMode() == STATE_ENROLL && event == EVENT_FINGER_LOST)
     {
         Serial.print(".");
     }
 }
 
-// Define our command callbacks the library will call on events from the sensor
-static const sfDevFPC2534Callbacks_t cmd_cb = {.on_error = on_error,
-                                               .on_status = on_status,
-                                               .on_enroll = on_enroll,
-                                               .on_identify = on_identify,
-                                               .on_list_templates = on_list_templates,
-                                               .on_is_ready_change = on_is_ready_change};
+// Define our command callback struct - functions are set in the setup function
+static sfDevFPC2534Callbacks_t cmd_cb = {0};
 
 //------------------------------------------------------------------------------------
 // reset_sensor()
@@ -332,8 +338,14 @@ void setup()
     Serial.println("----------------------------------------------------------------");
     Serial.println();
 
-    // RP2350 call.
+    // The internal UART buffer can fill up quickly and overflow. As such, increase its size.
+    // This example is supporting ESP32 and RP2040 based boards - adjust as needed for other platforms.
+#if defined(ARDUINO_ARCH_RP2040)
     Serial1.setFIFOSize(512);
+#elif defined(ESP32)
+    Serial1.setRxBufferSize(512);
+#endif
+
     Serial1.begin(921600, SERIAL_8N1);
     delay(100);
     for (uint32_t startMS = millis(); !Serial1 && (millis() - startMS < 5000);) // Wait for the serial port to be ready
@@ -352,6 +364,14 @@ void setup()
             delay(1000);
     }
     Serial.println("[STARTUP]\tFPC2534 initialized.");
+
+    // setup our callback functions structure
+    cmd_cb.on_error = on_error;
+    cmd_cb.on_status = on_status;
+    cmd_cb.on_enroll = on_enroll;
+    cmd_cb.on_identify = on_identify;
+    cmd_cb.on_list_templates = on_list_templates;
+    cmd_cb.on_is_ready_change = on_is_ready_change;
 
     // set the callbacks for the sensor library to call
     mySensor.setCallbacks(cmd_cb);
@@ -372,7 +392,8 @@ void loop()
     fpc_result_t rc = mySensor.processNextResponse();
     if (rc != FPC_RESULT_OK && rc != FPC_PENDING_OPERATION)
     {
-        Serial.printf("[ERROR] Processing Error: %d\n\r", rc);
+        Serial.print("[ERROR] Processing Error: ");
+        Serial.println(rc);
         // Hmm - reset the sensor and start again?
         reset_sensor();
     }

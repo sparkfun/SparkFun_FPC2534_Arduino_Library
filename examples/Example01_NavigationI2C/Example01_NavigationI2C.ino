@@ -7,7 +7,8 @@
  * ---------------------------------------------------------------------------------
  */
 
-/* Example using the SparkFun FPC2534 Fingerprint sensor library to demonstrate navigation mode
+/*
+ * Example using the SparkFun FPC2534 Fingerprint sensor library to demonstrate navigation mode
  * of the sensor. This example uses the I2C interface to communicate with the sensor.
  *
  * Example Setup:
@@ -48,16 +49,17 @@
 //----------------------------------------------------------------------------
 // UPDATE THESE DEFINES TO MATCH YOUR HARDWARE SETUP
 //
-// These are the pins the IRQ and RST pins of the sensor are connected to
+// These are the pins the IRQ and RST pins of the sensor are connected to the microcontroller.
+//
 // NOTE: The IRQ pin must be an interrupt-capable pin on your microcontroller
 //
-// Example pins for various SparkFun boards:
+// Example pins tested for various SparkFun boards:
 
-// esp32 thing plus
+// ESP32 thing plus
 // #define IRQ_PIN 16
 // #define RST_PIN 21
 
-// esp32 thing plus C
+// ESP32 thing plus C
 // #define IRQ_PIN 32
 // #define RST_PIN 14
 
@@ -196,10 +198,7 @@ static void on_navigation(uint16_t gesture)
 // Fill in the library callback structure with  our callback functions
 //
 // This is passed to the library so it knows what functions to call when events occur.
-static const sfDevFPC2534Callbacks_t cmd_cb = {.on_error = on_error,
-                                               .on_version = on_version,
-                                               .on_navigation = on_navigation,
-                                               .on_is_ready_change = on_is_ready_change};
+static sfDevFPC2534Callbacks_t cmd_cb = {0};
 
 //------------------------------------------------------------------------------------
 // reset_sensor()
@@ -263,6 +262,12 @@ void setup()
             delay(1000);
     }
     Serial.println("[STARTUP]\tFPC2534 initialized.");
+
+    // Setup our callback functions structure
+    cmd_cb.on_error = on_error;
+    cmd_cb.on_version = on_version;
+    cmd_cb.on_navigation = on_navigation;
+    cmd_cb.on_is_ready_change = on_is_ready_change;
 
     // set the callbacks for the sensor library to call
     mySensor.setCallbacks(cmd_cb);
