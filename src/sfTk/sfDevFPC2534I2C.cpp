@@ -28,22 +28,6 @@ static sfDevFPC2534I2C_IRead *__readHelper = nullptr;
 
 #endif
 
-// When in I2C comm mode, an interrupt pin from the FPC2534 is used to signal when
-// data is available to read. We manage this here.
-//
-// For the ISR interrupt handler
-// static volatile bool data_available = false;
-static volatile bool data_available = false;
-
-static void the_isr_cb()
-{
-    // This is the interrupt callback function
-    // It will be called when the IRQ pin goes high
-    // We can use this to signal that data is available
-
-    data_available = true;
-}
-
 // --------------------------------------------------------------------------------------------
 // CTOR
 sfDevFPC2534I2C::sfDevFPC2534I2C() : _i2cAddress{0}, _i2cPort{nullptr}, _i2cBusNumber{0}
@@ -63,9 +47,8 @@ bool sfDevFPC2534I2C::initialize(uint8_t address, TwoWire &wirePort, uint8_t i2c
     _i2cPort = &wirePort;
     _i2cBusNumber = i2cBusNumber;
 
-    // Setup the interrupt handler
-    pinMode(interruptPin, INPUT);
-    attachInterrupt(interruptPin, the_isr_cb, RISING);
+    // Call our super to init the ISR handler
+    sfDevFPC2534IComm::initISRHandler(interruptPin);
 
     // clear out our data buffer
     clearData();
@@ -82,7 +65,7 @@ bool sfDevFPC2534I2C::dataAvailable()
         return false;
 
     // the data available flag is set, or we have data in the buffer
-    return data_available || _dataCount > 0;
+    return isISRDataAvailable() || _dataCount > 0;
 }
 
 //--------------------------------------------------------------------------------------------
@@ -93,7 +76,8 @@ void sfDevFPC2534I2C::clearData()
     _dataCount = 0;
     _dataHead = 0;
     _dataTail = 0;
-    data_available = false;
+    // clear any data signaled by the ISR
+    clearISRDataAvailable();
 }
 
 //--------------------------------------------------------------------------------------------
@@ -173,10 +157,10 @@ uint16_t sfDevFPC2534I2C::read(uint8_t *data, size_t len)
         return FPC_RESULT_IO_RUNTIME_FAILURE;
 
     // is new data available from the sensor - always grab new data if we have room
-    if (data_available)
+    if (isISRDataAvailable())
     {
         // clear flag
-        data_available = false;
+        clearISRDataAvailable();
 
         // how much data is available?
         uint16_t dataAvailable = __readHelper->readTransferSize(_i2cAddress);
