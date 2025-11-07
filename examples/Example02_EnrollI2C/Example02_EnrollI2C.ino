@@ -270,8 +270,9 @@ static void on_is_ready_change(bool isReady)
 //
 static void on_identify(bool is_match, uint16_t id)
 {
+
+    Serial.print(is_match ? "" : " NO ");
     Serial.print(" MATCH ");
-    Serial.print(is_match ? "" : "NO ");
 
     if (is_match)
     {
