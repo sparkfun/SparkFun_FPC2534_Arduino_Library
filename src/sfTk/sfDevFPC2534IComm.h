@@ -27,6 +27,9 @@ class sfDevFPC2534IComm
     // So add a normally no-op beginWrite and endWrite methods that can be overridden by SPI comm classes.
     virtual void beginWrite(void) {};
     virtual void endWrite(void) {};
+
+    // public method -- for the ISR handler to set the data available flag for the specific object
+    // representing the IRS callback parameter.
     void setISRDataAvailable(void);
 
   protected:
@@ -42,4 +45,3 @@ class sfDevFPC2534IComm
     volatile bool _dataAvailable;
     bool _usingISRParam;
 };
-
