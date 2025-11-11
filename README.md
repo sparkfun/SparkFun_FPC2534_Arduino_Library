@@ -204,3 +204,8 @@ The operation of this mode is outlined in the following diagram:
 3) Loop mode is entered
 4) Messages from the sensor are processed
 5) When a navigation event message is identified, the message is parsed and the corresponding navigation event sent to the supplied ```on_navigation()``` callback function.  
+
+To further understand how to use Navigation mode, review the Navigaton examples provided with this library.
+
+- [Navigation using I2C](examples/Example01_NavigationI2C/Example01_NavigationI2C.ino)
+- [Navigatoin using Seria](examples/Example03_NavigationUART/Example03_NavigationUART.ino)
