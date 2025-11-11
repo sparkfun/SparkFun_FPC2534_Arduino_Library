@@ -181,3 +181,26 @@ The operational pattern for the SparkFun FPC2543 Fingerprint sensor library is o
    - The user takes the desired application action in the callback function.
 
 The loop sequence of operation - make a request, check for messages and respond via callback functions continue during the operation of the sensor.
+
+#### Navigation Mode
+
+One of the operating modes of FPC2534 is *Navigation Mode*. Enabled by calling the ```startNavigationMode()``` on the library, the FPC2534 acts like a small touch pad/joystick when in Navigation Mode. It should be noted, the ```startNavigationMode()``` method also takes a parameter that sets the oriengation of the sensor. This is used when determining event type (up, down, left, right).
+
+Events from this mode are communicated to the callback function assigned in the ```on_navigation``` field of the callback function structure that is passed to the library. The following events are supported:
+
+- Swipe left
+- Swipe right
+- Swipe up
+- Swipe down
+- Press - a quick press and remove of a finger from the sensor
+- Long press - triggered after the finger stays pressed on the sensor for a "long time" (~1 second)
+
+The operation of this mode is outlined in the following diagram:
+
+![Navigation Mode](docs/images/sfe-fpc2543-op-nav.png)
+
+1) Standard setup, with a ```on_navigation()``` callback function provided
+2) Once the sensor is running, start navigation mode. The sensor will interpret finger movements as navigation events and send messages when events are detected.
+3) Loop mode is entered
+4) Messages from the sensor are processed
+5) When a navigation event message is identified, the message is parsed and the corresponding navigation event sent to the supplied ```on_navigation()``` callback function.  
