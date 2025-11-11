@@ -36,7 +36,7 @@ Features that the FPC2534 supports, but are not currently implemented by this li
 
 If any of these advanced features are desired for use, an implementation can be found within the Fingerprints FPC2543 SDK, which is available on the [Fingerprints Website](https://www.fpc.com/products/documentation/).
 
-### Communication
+## Communication
 
 The operation of the FPC2534AP is performed by a messaging protocol implemented on the device. A client application sends message requests to the sensor and recieves responses to the request made.
 
@@ -52,7 +52,7 @@ The communication method used is selected via a pair of configuration jumpers on
 > [!NOTE]
 > The I2C (qwiic) interface for the SparkFun Fingerprint Sensor - FPC2534 Pro board is currently only supported on ESP32 and Raspberry RP2 (RP2040, RP2350) boards. The I2C Implemention of the FPC2534 device performs a dynamic payload transmission that is not supported by the Arduino Wire library. Because of this, a custom implementation is provided by this library for the ESP32 and RP2 platforms.
 
-#### Additional Connections
+### Additional Connections
 
 In addition to the communication method selected, the FPC2534AP requires additional connections to facilitate communication. The following connections are required:
 
@@ -76,7 +76,11 @@ While this methodlogy is unique to the when compaired to other libraries, it fit
 
 The first step to using the library is selected the method used to communicate with the device. The library supports I2C on select platforms, or UART (a Serial interface in Arduino). Once selected, and device connected as outlined in the hookup guide for theSparkFun Fingerprint Sensor - FPC2534 Pro. The type of connection depends on the method used to communicate with the device.
 
-#### Using I2C (Qwiic)
+#### Getting Started
+
+How the sensor is initialized is dependant on the communication method being utilized. The following sections outline how to use setup and initialize the I2C or UART interfaces to the device. Once setup, the operation of the device is communication method independant.
+
+##### Using I2C (Qwiic)
 
 When using I2C to communicate with the fingerprint sensor, the class named `SfeFPC2534I2C` is used. An example of how to declare the sensor object is as follows:
 
@@ -100,7 +104,7 @@ An example of calling the begin method:
 
 At this point, the sensor is ready for normal operation.
 
-##### A note on "pinging" the FPC2534 sensor
+###### A note on "pinging" the FPC2534 sensor
 
 Often, to determine if a sensor is available on the I2C bus, the bus is queried at the address for the device  (a simple "ping"). In arduino this often looks like:
 
@@ -116,7 +120,7 @@ Developing with the sensor has shown that once the sensor is "pinged", it enters
 > [!NOTE]
 > The I2C (qwiic) interface for the SparkFun Fingerprint Sensor - FPC2534 Pro board is currently only supported on ESP32 and Raspberry RP2 (RP2040, RP2350) boards. The I2C Implemention of the FPC2534 device performs a dynamic payload transmission that is not supported by the Arduino Wire library. Because of this, a custom implementation is provided by this library for the ESP32 and RP2 platforms.
 
-#### Using UART (Serial)
+##### Using UART (Serial)
 
 When using a UART (Serial) to communicate with the fingerprint sensor, the class named `SfeFPC2534UART` is used. An example of how to declare the sensor object is as follows:
 
@@ -148,6 +152,8 @@ Configure the following settings on the UART/Serial connection being used:
 >  Serial.setRxBufferSize(512);
 > ```
 
+If using a different controller for your project, the method used to expand the Serial read buffer will need to be determined. Some platforms (STM32 appears to self adjust FIFO size) no additional calls are needed, but on others (normally older systems) no option exists rendering the Serial interface the FPC2543 un-usable on the platform.
+
 To initialize the device, the Serial object used to communicate with the device is passed into the begin call.
 
 An example of calling the begin method:
@@ -157,3 +163,21 @@ An example of calling the begin method:
 ```
 
 At this point, the sensor is ready for normal operation.
+
+#### General Operation
+
+The operational pattern for the SparkFun FPC2543 Fingerprint sensor library is outlined in the following diagram:
+
+![Operational Sequence](docs/images/sfe-fpc2543-op-seq.png)
+
+1) The first step is library initialization and setup.
+   - The communication interface being used is provided to the library.
+   - The operationa callback functions are registered. These functions are called in reponse to commands sent to the sensor.
+2) The next phase normally occurs in the ```loop``` section of system operation.
+3) The application makes a request/sends a command to the sensor. These calls are asynchronous, and result in a message being sent to the sensor by the library.
+4) During each loop iteration, the library method ```processNextResponse()``` is called. This method will check for new messages and process any messages sent by the sensor.
+5) When checking for new messages, the library gets the next message/reponse from the device via the in-use communication bus. This message is parsed, and processed.
+6) When a response message is parsed and identified, if the host application has registered a callback for this message type, that callback function is called.
+   - The user takes the desired application action in the callback function.
+
+The loop sequence of operation - make a request, check for messages and respond via callback functions continue during the operation of the sensor.
