@@ -12,7 +12,7 @@
 
 // --------------------------------------------------------------------------------------------
 // CTOR
-sfDevFPC2534SPI::sfDevFPC2534SPI() : _spiPort{nullptr}, _spiSettings{nullptr}, _csPin{0}
+sfDevFPC2534SPI::sfDevFPC2534SPI() : _spiPort{nullptr}, _csPin{0}
 {
 }
 
@@ -37,7 +37,9 @@ bool sfDevFPC2534SPI::initialize(SPIClass &spiPort, SPISettings &busSPISettings,
 //--------------------------------------------------------------------------------------------
 bool sfDevFPC2534SPI::initialize(uint8_t csPin, uint32_t interruptPin, bool bInit)
 {
-    return initialize(SPI, SPISettings(3000000, MSBFIRST, SPI_MODE3), csPin, interruptPin, bInit);
+    // If the transaction settings are not provided by the user they are built here.
+    SPISettings spiSettings = SPISettings(3000000, MSBFIRST, SPI_MODE3);
+    return initialize(SPI, spiSettings, csPin, interruptPin, bInit);
 }
 //--------------------------------------------------------------------------------------------
 // Is data available to read - either the device is indicating it via an interrupt, or we have
@@ -49,7 +51,7 @@ bool sfDevFPC2534SPI::dataAvailable()
         return false;
 
     // the data available flag is set, or we have data in the buffer
-    return isISRDataAvailable() || _dataCount > 0;
+    return isISRDataAvailable();
 }
 
 //--------------------------------------------------------------------------------------------

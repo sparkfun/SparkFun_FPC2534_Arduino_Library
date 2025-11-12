@@ -12,6 +12,7 @@
 
 // from the FPC SDK
 #include "fpc_api.h"
+#include "sfDevFPC2534IComm.h"
 
 #include <Arduino.h>
 #include <SPI.h>

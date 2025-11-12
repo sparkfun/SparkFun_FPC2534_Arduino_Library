@@ -21,6 +21,7 @@ static volatile bool data_available = false;
 
 static bool isISRInitialized = false;
 
+#if !defined(ESP32) && !defined(ARDUINO_ARCH_RP2040)
 //--------------------------------------------------------------------------------------------
 // standard ISR handler - no param version
 static void the_isr_cb()
@@ -31,7 +32,7 @@ static void the_isr_cb()
 
     data_available = true;
 }
-
+#else
 //--------------------------------------------------------------------------------------------
 // ISR handler with param version ()
 static void the_isr_cb_arg(void *arg)
@@ -40,7 +41,7 @@ static void the_isr_cb_arg(void *arg)
     if (arg != nullptr)
         static_cast<sfDevFPC2534IComm *>(arg)->setISRDataAvailable();
 }
-
+#endif
 //--------------------------------------------------------------------------------------------
 // method used to set the IRS Handler by a sub-class
 void sfDevFPC2534IComm::initISRHandler(uint32_t interruptPin)
