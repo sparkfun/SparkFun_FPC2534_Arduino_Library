@@ -209,3 +209,26 @@ To further understand how to use Navigation mode, review the Navigaton examples 
 
 - [Navigation using I2C](examples/Example01_NavigationI2C/Example01_NavigationI2C.ino)
 - [Navigatoin using Seria](examples/Example03_NavigationUART/Example03_NavigationUART.ino)
+
+#### Enroll a Fingerprint
+
+Before the fingerprint sensor can validate a finger, that finger is enrolled into the sensor as a template. This operation is performed using an *Enroll Mode* of the sensor.
+
+To enter the *Enroll Mode*, the ```requestEnroll()``` method is called in the library. Once in Enroll Mode, the user places and removes the desired finger from the sensor, and the sensor report back the number samples remaining/progress to the library. The library then calls the ```on_enroll()``` callback method as the process progresses. once the value of the remaining scans reaches zero, the process is complete.
+
+This process is outlined in the following diagram:
+
+![Fingerprint Enrollment](docs/images/sfe-fpc2543-op-enroll.png)
+
+1) Stardard setup, with a ```on_enroll()``` callback function provided to the library.
+2) Once the sensor is operational, the ```requestEnroll()``` method is called to start the enrollment process
+3) A standard *loop*()* application pattern/method is started.
+4) The method ```processNextResponse()``` is called on the library to get updates from the sensor.
+5) The library identifies and parse an enrollment status message from the sensor
+6) The registered ```on_eroll()``` callback method is called, with the number of samples remaining.
+   - If the number is equal to zero, the process is complete and the fingerprint is enrolled/registered with the sensor.
+
+To further understand how to use the Enroll mode in your application, review the Enroll and Identify examples provided with this library:
+
+- [Enroll and Identify using I2C](examples/Example02_EnrollI2C/Example02_EnrollI2C.ino)
+- [Enroll and Identify using Serial](examples/Example04_EnrollUART/Example04_EnrollUART.ino)
