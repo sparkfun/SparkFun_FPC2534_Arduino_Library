@@ -228,7 +228,36 @@ This process is outlined in the following diagram:
 6) The registered ```on_eroll()``` callback method is called, with the number of samples remaining.
    - If the number is equal to zero, the process is complete and the fingerprint is enrolled/registered with the sensor.
 
+> [!NOTE]
+> An operational note when performing an enrollment process, when the user lifts their finger from the sensor, the ```on_status()``` callback method is called with an event type of ***EVENT_FINGER_LOST***. If this type is detected, and the method ```currentMode()``` returns a value of **STATE_IDENTIFY**, it's helpful to indicate progress to the user. In our examples, a `.` is printed.
+
 To further understand how to use the Enroll mode in your application, review the Enroll and Identify examples provided with this library:
 
 - [Enroll and Identify using I2C](examples/Example02_EnrollI2C/Example02_EnrollI2C.ino)
 - [Enroll and Identify using Serial](examples/Example04_EnrollUART/Example04_EnrollUART.ino)
+
+#### Identify a Fingerprint
+
+Once the sensor has registered one or more fingerprints, an *Identify* operation can take place, matching a finger to an enrolled fingerprint. This is started by calling the ```requestIdentify()``` method of this library.
+
+Once in Identify mode, the sensor will try to match a finger press to a registered fingerprint. The results of this match are communicated to the library and the user provided ```on_indentify()``` method is called with the results of the match process.
+
+The overall identify sequence is outlined in the following diagram.
+
+![Identify Fingerprint](docs/images/sfe-fpc2534-op-identify.png)
+
+1) Standard setup, with a ```on_identify()``` callback function provided to the library.
+2) Once the sensor is operational, the ```requestIdentify()``` method is called to start the indentify process.
+3) A standard *loop()* application pattern/method is started.
+4) The method ```processNextResponse()``` is called on the library to get updates from the sensor.
+5) The library identifies and parses an identify result message from the sensor.
+6) The registered ```on_identify()``` callback method is called with the results from the identify operation.
+   - If the match successful, a valid value for the id of the matched fingerprint template is also provided to the function
+
+To further understand how to use the Identify mode in your application, review the Enroll and Identify examples provided with this library:
+
+- [Enroll and Identify using I2C](examples/Example02_EnrollI2C/Example02_EnrollI2C.ino)
+- [Enroll and Identify using Serial](examples/Example04_EnrollUART/Example04_EnrollUART.ino)
+
+> [!NOTE]
+> A behavior noticed when using I2C communication mode and performing an Identify operation was that the sensor can *hang* until the finger is removed from the sensor. When this occurs, the ```on_status()``` callback is called with an event type of ***EVENT_IMAGE_READ*** and method ```currentMode()``` reports a value of **STATE_IDENTIFY**. When detected, it is helpful to prompt the user to remove their finger from the sensor, which will return to normal operation.
