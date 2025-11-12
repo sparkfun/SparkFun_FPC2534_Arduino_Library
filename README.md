@@ -12,18 +12,18 @@ Arduino Library for the SparkFun Fingerprint Sensor - FPC2534 Pro
 ![Compile - Test](https://img.shields.io/github/actions/workflow/status/sparkfun/SparkFun_FPC2534_Arduino_Library/compile-sketch.yml?label=compile%20test)
 ![GitHub issues](https://img.shields.io/github/issues/sparkfun/SparkFun_FPC2534_Arduino_Library)
 
-The [SparkFun Fingerprint Sensor - FPC2534 Pro]() is a small, highly capable and robust fingerprint sensor that can easily be integrated into virutally any application. Based off the AllKey Biometric System family from Fingerprints Cards (FPC), the FPC2534AP delivers incredible functionality in a small, compact formfactor.
+The [SparkFun Fingerprint Sensor - FPC2534 Pro]() is a small, highly capable and robust fingerprint sensor that can easily be integrated into virtually  any application. Based off the AllKey Biometric System family from Fingerprints Cards (FPC), the FPC2534AP delivers incredible functionality in a small, compact formfactor.
 
 ## Functionality
 
-The SparkFun Fingerprint Sensor - FPC2534 Pro is accessable via a variety of interfaces, including I2C and UART, which are supported by this library.
+The SparkFun Fingerprint Sensor - FPC2534 Pro is accessible via a variety of interfaces, including I2C and UART, which are supported by this library.
 
-This library provides a message-based, easy to use interface that enables fingerprint biometric authentication and simple finger-based navigation. Specificatlly, the FPC2534AP provides:
+This library provides a message-based, easy to use interface that enables fingerprint biometric authentication and simple finger-based navigation. Specifically, the FPC2534AP provides:
 
 - Fingerprint enrollment - adding a fingerprint to the sensor
 - Fingerprint template management - managing recorded fingerprints
-- Fingerprint matching/indentification for biometric authentication
-- Trackpad like functionalality for simple, finger-based navigation
+- Fingerprint matching/identification  for biometric authentication
+- Trackpad like functionality for simple, finger-based navigation
 - Application integration via a variety of communication methods
 
 ### Functionality not Supported by the Library
@@ -38,7 +38,7 @@ If any of these advanced features are desired for use, an implementation can be 
 
 ## Communication
 
-The operation of the FPC2534AP is performed by a messaging protocol implemented on the device. A client application sends message requests to the sensor and recieves responses to the request made.
+The operation of the FPC2534AP is performed by a messaging protocol implemented on the device. A client application sends message requests to the sensor and receives  responses to the request made.
 
 To support integration and messaging, the FPC2534AP provides support for four (4) different communication implementations. These are:
 
@@ -47,10 +47,10 @@ To support integration and messaging, the FPC2534AP provides support for four (4
 - SPI
 - USB
 
-The communication method used is selected via a pair of configuration jumpers on the SparkFun Fingerprint Sensor - FPC2534 Pro board. Further information on the use is oulined in the associated Hookup Guide for the SparkFun fingerprint breakout board.
+The communication method used is selected via a pair of configuration jumpers on the SparkFun Fingerprint Sensor - FPC2534 Pro board. Further information on the use is outlined in the associated Hookup Guide for the SparkFun fingerprint breakout board.
 
 > [!NOTE]
-> The I2C (qwiic) interface for the SparkFun Fingerprint Sensor - FPC2534 Pro board is currently only supported on ESP32 and Raspberry RP2 (RP2040, RP2350) boards. The I2C Implemention of the FPC2534 device performs a dynamic payload transmission that is not supported by the Arduino Wire library. Because of this, a custom implementation is provided by this library for the ESP32 and RP2 platforms.
+> The I2C (qwiic) interface for the SparkFun Fingerprint Sensor - FPC2534 Pro board is currently only supported on ESP32 and Raspberry RP2 (RP2040, RP2350) boards. The I2C implementation  of the FPC2534 device performs a dynamic payload transmission that is not supported by the Arduino Wire library. Because of this, a custom implementation is provided by this library for the ESP32 and RP2 platforms.
 
 ### Additional Connections
 
@@ -59,26 +59,26 @@ In addition to the communication method selected, the FPC2534AP requires additio
 | Pin | Use | Notes |
 | -- | -- | -- |
 |RST | Reset Device | Setting the pin low, then high will reset the FPC2534AP, placing it into a known state|
-|IQ| IRQ/Interrupt Request|Used by the sensor to signal a new message/data availablity - note: this is not required when using the serial interface|
+|IQ| IRQ/Interrupt Request|Used by the sensor to signal a new message/data availability  - note: this is not required when using the serial interface|
 
 ## Library
 
-Unlike a majority of sensors and their associated libraries which are synchronous function calls - a function/method call returns a requested value or performs a specific action - the FPC2534AP operates using a messaging methodlogy - sending messages to the client as actions occur on the device, or in reponse to earlier requests.
+Unlike a majority of sensors and their associated libraries which are synchronous function calls - a function/method call returns a requested value or performs a specific action - the FPC2534AP operates using a messaging methodology  - sending messages to the client as actions occur on the device, or in response to earlier requests.
 
-Since messaging methodology is used by the FPC2534AP, this library makes makese use of the following implementation pattern:
+Since messaging methodology is used by the FPC2534AP, this library makes use of the following implementation pattern:
 
-- User provided callback functions that the library calls when a specific message is recieved from the library (like when a finger is pressed on the sensor).
+- User provided callback functions that the library calls when a specific message is received  from the library (like when a finger is pressed on the sensor).
 - A process message method that is called to process the next available message from the sensor if one is available. This method is called within your applications main processing loop (for Arduino, this is the `loop()` function).
 
-While this methodlogy is unique to the when compaired to other libraries, it fits well with the event driven nature of the FPC2534AP fingerprint sensor.
+While this methodology  is unique to the when compared  to other libraries, it fits well with the event driven nature of the FPC2534AP fingerprint sensor.
 
 ### Using the Library
 
-The first step to using the library is selected the method used to communicate with the device. The library supports I2C on select platforms, or UART (a Serial interface in Arduino). Once selected, and device connected as outlined in the hookup guide for theSparkFun Fingerprint Sensor - FPC2534 Pro. The type of connection depends on the method used to communicate with the device.
+The first step to using the library is selected the method used to communicate with the device. The library supports I2C on select platforms, or UART (a Serial interface in Arduino). Once selected, and device connected as outlined in the hookup guide for the SparkFun Fingerprint Sensor - FPC2534 Pro. The type of connection depends on the method used to communicate with the device.
 
 #### Getting Started
 
-How the sensor is initialized is dependant on the communication method being utilized. The following sections outline how to use setup and initialize the I2C or UART interfaces to the device. Once setup, the operation of the device is communication method independant.
+How the sensor is initialized is dependent  on the communication method being utilized. The following sections outline how to use setup and initialize the I2C or UART interfaces to the device. Once setup, the operation of the device is communication method independent.
 
 ##### Using I2C (Qwiic)
 
@@ -106,7 +106,7 @@ At this point, the sensor is ready for normal operation.
 
 ###### A note on "pinging" the FPC2534 sensor
 
-Often, to determine if a sensor is available on the I2C bus, the bus is queried at the address for the device  (a simple "ping"). In arduino this often looks like:
+Often, to determine if a sensor is available on the I2C bus, the bus is queried at the address for the device  (a simple "ping"). In Arduino this often looks like:
 
 ```c++
 // Is the sensor there - on the I2C bus?
@@ -118,7 +118,7 @@ Often, to determine if a sensor is available on the I2C bus, the bus is queried 
 Developing with the sensor has shown that once the sensor is "pinged", it enters an unknown state. To ensure proper device operation, a `reset()` of the device is needed after a `ping` operation is performed.
 
 > [!NOTE]
-> The I2C (qwiic) interface for the SparkFun Fingerprint Sensor - FPC2534 Pro board is currently only supported on ESP32 and Raspberry RP2 (RP2040, RP2350) boards. The I2C Implemention of the FPC2534 device performs a dynamic payload transmission that is not supported by the Arduino Wire library. Because of this, a custom implementation is provided by this library for the ESP32 and RP2 platforms.
+> The I2C (qwiic) interface for the SparkFun Fingerprint Sensor - FPC2534 Pro board is currently only supported on ESP32 and Raspberry RP2 (RP2040, RP2350) boards. The I2C implementation  of the FPC2534 device performs a dynamic payload transmission that is not supported by the Arduino Wire library. Because of this, a custom implementation is provided by this library for the ESP32 and RP2 platforms.
 
 ##### Using UART (Serial)
 
@@ -138,7 +138,7 @@ Configure the following settings on the UART/Serial connection being used:
 | Read Buffer Size | 512|
 
 > [!NOTE]
-> Due to the amount of information sent by the fingerprint sensor, the default size of the  internal buffer used by Arduino Serial objects is rapidly exceeded. To prevent this, the buffer size must be increased before initializing the FPC2534AP device.  
+> Due to the amount of information sent by the fingerprint sensor, the default size of the internal buffer used by Arduino Serial objects is rapidly exceeded. To prevent this, the buffer size must be increased before initializing the FPC2534AP device.  
 >
 > To increase the buffer size when using a Raspberry pi RP2 Microcontroller:
 >
@@ -182,9 +182,44 @@ The operational pattern for the SparkFun FPC2543 Fingerprint sensor library is o
 
 The loop sequence of operation - make a request, check for messages and respond via callback functions continue during the operation of the sensor.
 
+##### Callback Functions
+
+The results from the FPC2543 sensor are reported through the use of callback functions, which are user provided. While more advanced that standard functional programming, this implementation pattern is recommended by the FPC2543 manufacturer and fits nicely with the operational use of the sensor.
+
+Callback functions are assigned with a structure of type ```sfDevFPC2534Callbacks_t```, which is passed to the library during the setup sequence.
+
+The following callbacks are available for use:
+
+| Callback Name | Description|
+| -- | -- |
+|on_error| Called when the sensor send an error message. An error code is provided|
+|on_status| Called with status update information from the sensor|
+|on_version| Called as a result of a version request. The version string is passed to the callback|
+|on_enroll| Called during a fingerprint enrollment process. The number of samples remaining and feedback are provided|
+|on_list_templates | Called with the results of a ```requestListTemplates()``` call|
+|on_navigation| Called when a navigation event is sent from the sensor|
+|on_gpio_control| Called as the result of a GPIO get request call|
+|on_system_config_get| Called when the system config is requested|
+|on_bist_done| Called when the built-in testing routine is finished. The result of this test is provided|
+|on_mode_change| Called when the mode of the sensor changes|
+|on_finger_change | Called when the finger presence on the sensor changes|
+|on_is_read_change| Called when the ready status of the sensor changes|
+
+##### Startup Status Message
+
+When the FPC2534 starts up, it posts a *is ready for use* status message, which can be detected within the ```on_status()``` callback function if provided to the library.
+
+Another option is to register a ```on_is_ready_change()``` callback function, which is called when the ready state of the sensor changes. This simplifies the required implementation for using the sensor.
+
+It the examples provided with this library, the ```on_is_ready_change()``` callback is used to determine when the sensor is ready for operation. When this callback is called with a "ready" value, the examples begin FPC2543 operations.
+
+#### Error Conditions
+
+If an error is reported by the sensor, the error value is pass to the registered ```on_error()``` callback function.
+
 #### Navigation Mode
 
-One of the operating modes of FPC2534 is *Navigation Mode*. Enabled by calling the ```startNavigationMode()``` on the library, the FPC2534 acts like a small touch pad/joystick when in Navigation Mode. It should be noted, the ```startNavigationMode()``` method also takes a parameter that sets the oriengation of the sensor. This is used when determining event type (up, down, left, right).
+One of the operating modes of FPC2534 is *Navigation Mode*. Enabled by calling the ```startNavigationMode()``` on the library, the FPC2534 acts like a small touch pad/joystick when in Navigation Mode. It should be noted, the ```startNavigationMode()``` method also takes a parameter that sets the orientation of the sensor. This is used when determining event type (up, down, left, right).
 
 Events from this mode are communicated to the callback function assigned in the ```on_navigation``` field of the callback function structure that is passed to the library. The following events are supported:
 
@@ -225,7 +260,7 @@ This process is outlined in the following diagram:
 3) A standard *loop*()* application pattern/method is started.
 4) The method ```processNextResponse()``` is called on the library to get updates from the sensor.
 5) The library identifies and parse an enrollment status message from the sensor
-6) The registered ```on_eroll()``` callback method is called, with the number of samples remaining.
+6) The registered ```on_enroll()``` callback method is called, with the number of samples remaining.
    - If the number is equal to zero, the process is complete and the fingerprint is enrolled/registered with the sensor.
 
 > [!NOTE]
