@@ -138,7 +138,7 @@ Configure the following settings on the UART/Serial connection being used:
 | Read Buffer Size | 512|
 
 > [!NOTE]
-> Due to the amount of information sent by the fingerprint sensor, the default size of the  internal buffer used by Arduino Serial objects is rapidly exceeded. To prevent this, the buffer size must be be increased before intializing the FPC2534AP device.  
+> Due to the amount of information sent by the fingerprint sensor, the default size of the  internal buffer used by Arduino Serial objects is rapidly exceeded. To prevent this, the buffer size must be increased before initializing the FPC2534AP device.  
 >
 > To increase the buffer size when using a Raspberry pi RP2 Microcontroller:
 >
@@ -152,7 +152,7 @@ Configure the following settings on the UART/Serial connection being used:
 >  Serial.setRxBufferSize(512);
 > ```
 
-If using a different controller for your project, the method used to expand the Serial read buffer will need to be determined. Some platforms (STM32 appears to self adjust FIFO size) no additional calls are needed, but on others (normally older systems) no option exists rendering the Serial interface the FPC2543 un-usable on the platform.
+If using a different controller for your project, the method used to expand the Serial read buffer will need to be determined. Some platforms (STM32 appears to self-adjust FIFO size) no additional calls are needed, but on others (normally older systems) no option exists rendering the Serial interface the FPC2543 un-usable on the platform.
 
 To initialize the device, the Serial object used to communicate with the device is passed into the begin call.
 
@@ -172,11 +172,11 @@ The operational pattern for the SparkFun FPC2543 Fingerprint sensor library is o
 
 1) The first step is library initialization and setup.
    - The communication interface being used is provided to the library.
-   - The operationa callback functions are registered. These functions are called in reponse to commands sent to the sensor.
+   - The operation callback functions are registered. These functions are called in response to commands sent to the sensor.
 2) The next phase normally occurs in the ```loop``` section of system operation.
 3) The application makes a request/sends a command to the sensor. These calls are asynchronous, and result in a message being sent to the sensor by the library.
 4) During each loop iteration, the library method ```processNextResponse()``` is called. This method will check for new messages and process any messages sent by the sensor.
-5) When checking for new messages, the library gets the next message/reponse from the device via the in-use communication bus. This message is parsed, and processed.
+5) When checking for new messages, the library gets the next message/response from the device via the in-use communication bus. This message is parsed and processed.
 6) When a response message is parsed and identified, if the host application has registered a callback for this message type, that callback function is called.
    - The user takes the desired application action in the callback function.
 
@@ -205,10 +205,10 @@ The operation of this mode is outlined in the following diagram:
 4) Messages from the sensor are processed
 5) When a navigation event message is identified, the message is parsed and the corresponding navigation event sent to the supplied ```on_navigation()``` callback function.  
 
-To further understand how to use Navigation mode, review the Navigaton examples provided with this library.
+To further understand how to use Navigation mode, review the Navigation examples provided with this library.
 
 - [Navigation using I2C](examples/Example01_NavigationI2C/Example01_NavigationI2C.ino)
-- [Navigatoin using Seria](examples/Example03_NavigationUART/Example03_NavigationUART.ino)
+- [Navigation using Serial](examples/Example03_NavigationUART/Example03_NavigationUART.ino)
 
 #### Enroll a Fingerprint
 
@@ -220,7 +220,7 @@ This process is outlined in the following diagram:
 
 ![Fingerprint Enrollment](docs/images/sfe-fpc2543-op-enroll.png)
 
-1) Stardard setup, with a ```on_enroll()``` callback function provided to the library.
+1) Standard setup, with a ```on_enroll()``` callback function provided to the library.
 2) Once the sensor is operational, the ```requestEnroll()``` method is called to start the enrollment process
 3) A standard *loop*()* application pattern/method is started.
 4) The method ```processNextResponse()``` is called on the library to get updates from the sensor.
@@ -247,7 +247,7 @@ The overall identify sequence is outlined in the following diagram.
 ![Identify Fingerprint](docs/images/sfe-fpc2534-op-identify.png)
 
 1) Standard setup, with a ```on_identify()``` callback function provided to the library.
-2) Once the sensor is operational, the ```requestIdentify()``` method is called to start the indentify process.
+2) Once the sensor is operational, the ```requestIdentify()``` method is called to start the identify process.
 3) A standard *loop()* application pattern/method is started.
 4) The method ```processNextResponse()``` is called on the library to get updates from the sensor.
 5) The library identifies and parses an identify result message from the sensor.
