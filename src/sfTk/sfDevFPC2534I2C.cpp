@@ -172,7 +172,9 @@ uint16_t sfDevFPC2534I2C::read(uint8_t *data, size_t len)
 
             // Was there an error
             if (dataAvailable == 0)
+            {
                 return FPC_RESULT_IO_BAD_DATA; // error
+            }
 
             // okay, add this data to our internal buffer
             if (fifo_enqueue(tempBuffer, (size_t)dataAvailable) == false)
