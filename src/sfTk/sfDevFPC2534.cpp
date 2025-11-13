@@ -656,7 +656,7 @@ fpc_result_t sfDevFPC2534::processNextResponse(bool flushNone)
 
     // Sanity check of the header...
     if (frameHeader.version != FPC_FRAME_PROTOCOL_VERSION ||
-        ((frameHeader.flags & FPC_FRAME_FLAG_SENDER_FW_APP) == 0) ||
+        ((frameHeader.flags & (FPC_FRAME_FLAG_SENDER_FW_APP | FPC_FRAME_FLAG_SENDER_FW_BL)) == 0) ||
         (frameHeader.type != FPC_FRAME_TYPE_CMD_RESPONSE && frameHeader.type != FPC_FRAME_TYPE_CMD_EVENT))
         return FPC_RESULT_IO_BAD_DATA;
 
