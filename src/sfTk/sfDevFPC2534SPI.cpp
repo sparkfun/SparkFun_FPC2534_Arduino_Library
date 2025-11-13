@@ -32,6 +32,10 @@ bool sfDevFPC2534SPI::initialize(SPIClass &spiPort, SPISettings &busSPISettings,
     // clear out our data buffer
     clearData();
 
+    // init?
+    if (bInit)
+        _spiPort->begin();
+
     return true;
 }
 //--------------------------------------------------------------------------------------------

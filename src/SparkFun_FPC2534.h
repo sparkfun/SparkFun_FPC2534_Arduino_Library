@@ -21,7 +21,9 @@
 
 #include "sfTk/sfDevFPC2534.h"
 #include "sfTk/sfDevFPC2534I2C.h"
+#include "sfTk/sfDevFPC2534SPI.h"
 #include "sfTk/sfDevFPC2534UART.h"
+#include <Arduino.h>
 
 // Make a Arduino friendly Address define
 #define SFE_FPC2534_I2C_ADDRESS kFPC2534DefaultAddress
@@ -92,4 +94,62 @@ class SfeFPC2534UART : public sfDevFPC2534
 
   private:
     sfDevFPC2534UART _commUART;
+};
+
+//--------------------------------------------------------------------------------------------
+// SPI version of the FPC2534 class
+//
+///
+
+class SfeFPC2534SPI : public sfDevFPC2534
+{
+  public:
+    SfeFPC2534SPI()
+    {
+    }
+    /**
+     * @brief Initialize the sensor using SPI communication
+     * @param spiPort Reference to the SPIClass object to use (default is SPI)
+     * @param busSPISettings SPI settings to use for the bus
+     * @param csPin Chip select pin number
+     * @param interruptPin Pin number for the interrupt)
+     * @param bInit Whether to initialize the SPI bus (default is false)
+     * @return true if initialization was successful, false otherwise
+     */
+
+    bool begin(SPIClass &spiPort, SPISettings &busSPISettings, const uint8_t csPin, const uint32_t interruptPin,
+               bool bInit = false)
+    {
+
+        // Setup the SPI communication
+        if (!_commSPIBus.initialize(spiPort, busSPISettings, csPin, interruptPin, bInit))
+            return false;
+
+        // Okay, the bus is a go, lets initialize the base class
+
+        return sfDevFPC2534::initialize(_commSPIBus);
+    }
+
+    /**
+     * @brief Initialize the sensor using SPI communication
+     *
+     * @param csPin Chip select pin number
+     * @param interruptPin Pin number for the interrupt (default is 255, meaning no interrupt)
+     * @param bInit Whether to initialize the SPI bus (default is false)
+     * @return true if initialization was successful, false otherwise
+     */
+    bool begin(const uint8_t csPin, const uint32_t interruptPin, bool bInit = false)
+    {
+
+        // Setup the SPI communication
+        if (!_commSPIBus.initialize(csPin, interruptPin, bInit))
+            return false;
+
+        // Okay, the bus is a go, lets initialize the base class
+
+        return sfDevFPC2534::initialize(_commSPIBus);
+    }
+
+  private:
+    sfDevFPC2534SPI _commSPIBus;
 };
