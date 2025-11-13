@@ -55,17 +55,30 @@
 //
 // Example pins tested for various SparkFun boards:
 
-// ESP32 thing plus
+// // ESP32 thing plus
 // #define IRQ_PIN 16
 // #define RST_PIN 21
+// #define I2C_BUS 0
 
 // ESP32 thing plus C
 // #define IRQ_PIN 32
 // #define RST_PIN 14
+// #define I2C_BUS 0
+
+// ESP32 IoT RedBoard
+#define IRQ_PIN 26
+#define RST_PIN 27
+#define I2C_BUS 0
 
 // rp2350 thing plus
-#define IRQ_PIN 11
-#define RST_PIN 12
+// #define IRQ_PIN 11
+// #define RST_PIN 12
+// #define I2C_BUS 0
+
+// rp2350 RedBoard IoT
+// #define IRQ_PIN 29
+// #define RST_PIN 28
+// #define I2C_BUS 0
 
 // State flags to manage sensor startup/state
 bool startNavigation = true;
@@ -255,7 +268,7 @@ void setup()
         Serial.println("[STARTUP]\tTouch Sensor FPC2534 found on I2C bus");
 
     // The sensor is available - Initialize the sensor library
-    if (!mySensor.begin(kFPC2534DefaultAddress, Wire, 0, IRQ_PIN))
+    if (!mySensor.begin(kFPC2534DefaultAddress, Wire, I2C_BUS, IRQ_PIN))
     {
         Serial.println("[ERROR]\tFPC2534 not found. Check wiring. HALT.");
         while (1)
