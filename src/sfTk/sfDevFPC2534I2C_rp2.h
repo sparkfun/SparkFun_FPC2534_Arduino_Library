@@ -64,14 +64,14 @@ class sfDevFPC2534I2C_Helper : public sfDevFPC2534I2C_IRead
             return 0;
 
         // Since we want to continue the read operation and not restart, set the restart_on_next flag to false.
-        bool restart0 = i2c1->restart_on_next;
+        bool restart0 = _i2cPort->restart_on_next;
 
-        i2c1->restart_on_next = false;
+        _i2cPort->restart_on_next = false;
         int rc =
             i2c_read_blocking_until(_i2cPort, _device_address, data, len, false, make_timeout_time_ms(_timeOutMillis));
 
         // restore the restart flag to its previous state
-        i2c1->restart_on_next = restart0;
+        _i2cPort->restart_on_next = restart0;
         _pendingStop = false;
 
         // Problem?
