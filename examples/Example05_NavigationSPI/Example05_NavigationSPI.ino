@@ -60,7 +60,7 @@
 // ESP32 IoT RedBoard
 #define IRQ_PIN 26
 #define RST_PIN 27
-#define CS_PIN 6
+#define CS_PIN 25
 
 // rp2350 thing plus
 // #define IRQ_PIN 11
@@ -119,6 +119,7 @@ static void on_is_ready_change(bool isReady)
         {
             // Place the sensor in Navigation mode and print out a menue.
             startNavigation = false;
+            Serial.println("[SETUP]\tStarting Navigation mode...");
             fpc_result_t rc = mySensor.startNavigationMode(0);
 
             // error?
@@ -282,6 +283,8 @@ void loop()
     {
         Serial.print("[ERROR] Sensor Processing Error: ");
         Serial.println(rc);
+        // mySensor.clearData();
+        // reset_sensor();
     }
 
     delay(200);

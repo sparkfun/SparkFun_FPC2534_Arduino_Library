@@ -32,11 +32,13 @@ fpc_result_t sfDevFPC2534::sendCommand(fpc_cmd_hdr_t &cmd, size_t size)
     frameHeader.payload_size = (uint16_t)size;
 
     // send message header, then payload
+    _comm->beginWrite();
     fpc_result_t rc = _comm->write((uint8_t *)&frameHeader, sizeof(fpc_frame_hdr_t));
 
     if (rc == FPC_RESULT_OK)
         rc = _comm->write((uint8_t *)&cmd, size);
 
+    _comm->endWrite();
     return rc;
 }
 //--------------------------------------------------------------------------------------------
@@ -213,6 +215,8 @@ fpc_result_t sfDevFPC2534::parseStatusCommand(fpc_cmd_hdr_t *cmd_hdr, size_t siz
 
     fpc_cmd_status_response_t *status = (fpc_cmd_status_response_t *)cmd_hdr;
 
+    Serial.printf("Parsing Status Command: Event: 0x%04X, State: 0x%04X, AppFail: 0x%04X\r\n", status->event,
+                  status->state, status->app_fail_code);
     // TODO: Implement secure interface handling
     // if (status->state & STATE_SECURE_INTERFACE)
     // {
@@ -540,8 +544,11 @@ fpc_result_t sfDevFPC2534::parseCommand(uint8_t *payload, size_t size)
     if (payload == nullptr || size == 0)
         return FPC_RESULT_INVALID_PARAM;
 
+    Serial.printf("Parsing command of size %d\n\r", size);
+
     fpc_cmd_hdr_t *cmdHeader = (fpc_cmd_hdr_t *)payload;
 
+    Serial.printf("Command ID: 0x%02X, Type: 0x%02X\n\r", cmdHeader->cmd_id, cmdHeader->type);
     // look legit?
     if (cmdHeader->type != FPC_FRAME_TYPE_CMD_EVENT && cmdHeader->type != FPC_FRAME_TYPE_CMD_RESPONSE)
         return FPC_RESULT_INVALID_PARAM;
@@ -644,8 +651,8 @@ fpc_result_t sfDevFPC2534::processNextResponse(bool flushNone)
         return rc;
 
     // Debug output - helpful when developing
-    // Serial.printf("Frame Header: ver 0x%04X, type 0x%02X, flags 0x%04X, payload size %d\n\r", frameHeader.version,
-    //               frameHeader.type, frameHeader.flags, frameHeader.payload_size);
+    Serial.printf("Frame Header: ver 0x%04X, type 0x%02X, flags 0x%04X, payload size %d\n\r", frameHeader.version,
+                  frameHeader.type, frameHeader.flags, frameHeader.payload_size);
 
     // Sanity check of the header...
     if (frameHeader.version != FPC_FRAME_PROTOCOL_VERSION ||

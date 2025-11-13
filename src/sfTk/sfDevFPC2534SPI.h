@@ -32,7 +32,12 @@ class sfDevFPC2534SPI : public sfDevFPC2534IComm
     uint16_t write(const uint8_t *data, size_t len);
     uint16_t read(uint8_t *data, size_t len);
 
+    void beginWrite(void) override;
+    void endWrite(void) override;
+
   private:
+    bool _inWrite;
+
     // SPI Things
     SPIClass *_spiPort;
     SPISettings _spiSettings;
