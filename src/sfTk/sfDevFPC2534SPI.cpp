@@ -12,7 +12,7 @@
 
 // --------------------------------------------------------------------------------------------
 // CTOR
-sfDevFPC2534SPI::sfDevFPC2534SPI() : _inWrite{false}, _spiPort{nullptr}, _csPin{0}
+sfDevFPC2534SPI::sfDevFPC2534SPI() : _inWrite{false}, _inRead{false}, _spiPort{nullptr}, _csPin{0}
 {
 }
 
@@ -80,7 +80,7 @@ void sfDevFPC2534SPI::beginWrite(void)
     // the  datasheet specifiies a delay greater than 500us after CS goes low
     delayMicroseconds(600);
     _inWrite = true;
-    Serial.println("Begin SPI Write");
+    // Serial.println("Begin SPI Write");
 }
 
 void sfDevFPC2534SPI ::endWrite(void)
@@ -91,7 +91,7 @@ void sfDevFPC2534SPI ::endWrite(void)
     digitalWrite(_csPin, HIGH);
     _spiPort->endTransaction();
     _inWrite = false;
-    Serial.println("End SPI Write");
+    // Serial.println("End SPI Write");
 }
 //--------------------------------------------------------------------------------------------
 // Write data to the device
@@ -101,7 +101,7 @@ uint16_t sfDevFPC2534SPI::write(const uint8_t *data, size_t len)
     if (_spiPort == nullptr)
         return FPC_RESULT_IO_RUNTIME_FAILURE; // I2C bus not initialized
 
-    Serial.printf("Writing %d bytes to SPI\r\n", len);
+    // Serial.printf("Writing %d bytes to SPI\r\n", len);
     // now send the data
 
     for (size_t i = 0; i < len; i++)
@@ -127,22 +127,58 @@ uint16_t sfDevFPC2534SPI::read(uint8_t *data, size_t len)
     if (_inWrite)
         endWrite();
 
-    _spiPort->beginTransaction(_spiSettings);
+    // _spiPort->beginTransaction(_spiSettings);
 
-    // Signal communication start
-    digitalWrite(_csPin, LOW);
+    // // Signal communication start
+    // digitalWrite(_csPin, LOW);
 
-    // the  datasheet specifiies a delay greater than 500us after CS goes low
-    delayMicroseconds(600);
+    // // the  datasheet specifiies a delay greater than 500us after CS goes low
+    // delayMicroseconds(600);
 
-    Serial.printf("Reading %d bytes from SPI\r\n", len);
+    // if we are not in a read transaction, not okay.
+    if (_inRead == false)
+        return FPC_RESULT_IO_RUNTIME_FAILURE;
+
+    // Data available?
+    if (!dataAvailable() && !_inRead)
+        return FPC_RESULT_IO_NO_DATA;
+
+    // clear the data available flag
+    clearISRDataAvailable();
+
+    // Serial.printf("Reading %d bytes from SPI\r\n", len);
     // Lets read the data...
     for (size_t i = 0; i < len; i++)
         *data++ = _spiPort->transfer(0x00);
 
-    // End transaction
+    // // End transaction
+    // digitalWrite(_csPin, HIGH);
+    // _spiPort->endTransaction();
+
+    return FPC_RESULT_OK;
+}
+void sfDevFPC2534SPI::beginRead(void)
+{
+    if (_spiPort == nullptr)
+        return; // SPI bus not initialized
+
+    _spiPort->beginTransaction(_spiSettings);
+
+    // Signal communication start
+    digitalWrite(_csPin, LOW);
+    // the  datasheet specifiies a delay greater than 500us after CS goes low
+    delayMicroseconds(600);
+
+    _inRead = true;
+}
+
+void sfDevFPC2534SPI ::endRead(void)
+{
+    if (_spiPort == nullptr || !_inRead)
+        return; // SPI bus not initialized
+    // End comms
     digitalWrite(_csPin, HIGH);
     _spiPort->endTransaction();
 
-    return FPC_RESULT_OK;
+    _inRead = false;
 }

@@ -28,6 +28,9 @@ class sfDevFPC2534IComm
     virtual void beginWrite(void) {};
     virtual void endWrite(void) {};
 
+    virtual void beginRead(void) {};
+    virtual void endRead(void) {};
+
     // public method -- for the ISR handler to set the data available flag for the specific object
     // representing the IRS callback parameter.
     void setISRDataAvailable(void);

@@ -27,16 +27,20 @@ class sfDevFPC2534SPI : public sfDevFPC2534IComm
                     bool bInit = false);
     bool initialize(uint8_t csPin, uint32_t interruptPin, bool bInit = false);
 
-    bool dataAvailable();
-    void clearData();
-    uint16_t write(const uint8_t *data, size_t len);
-    uint16_t read(uint8_t *data, size_t len);
+    bool dataAvailable() override;
+    void clearData() override;
+    uint16_t write(const uint8_t *data, size_t len) override;
+    uint16_t read(uint8_t *data, size_t len) override;
 
     void beginWrite(void) override;
     void endWrite(void) override;
 
+    void beginRead(void) override;
+    void endRead(void) override;
+
   private:
     bool _inWrite;
+    bool _inRead;
 
     // SPI Things
     SPIClass *_spiPort;

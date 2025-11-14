@@ -215,8 +215,8 @@ fpc_result_t sfDevFPC2534::parseStatusCommand(fpc_cmd_hdr_t *cmd_hdr, size_t siz
 
     fpc_cmd_status_response_t *status = (fpc_cmd_status_response_t *)cmd_hdr;
 
-    Serial.printf("Parsing Status Command: Event: 0x%04X, State: 0x%04X, AppFail: 0x%04X\r\n", status->event,
-                  status->state, status->app_fail_code);
+    // Serial.printf("Parsing Status Command: Event: 0x%04X, State: 0x%04X, AppFail: 0x%04X\r\n", status->event,
+    //               status->state, status->app_fail_code);
     // TODO: Implement secure interface handling
     // if (status->state & STATE_SECURE_INTERFACE)
     // {
@@ -544,11 +544,11 @@ fpc_result_t sfDevFPC2534::parseCommand(uint8_t *payload, size_t size)
     if (payload == nullptr || size == 0)
         return FPC_RESULT_INVALID_PARAM;
 
-    Serial.printf("Parsing command of size %d\n\r", size);
+    // Serial.printf("Parsing command of size %d\n\r", size);
 
     fpc_cmd_hdr_t *cmdHeader = (fpc_cmd_hdr_t *)payload;
 
-    Serial.printf("Command ID: 0x%02X, Type: 0x%02X\n\r", cmdHeader->cmd_id, cmdHeader->type);
+    // Serial.printf("Command ID: 0x%02X, Type: 0x%02X\n\r", cmdHeader->cmd_id, cmdHeader->type);
     // look legit?
     if (cmdHeader->type != FPC_FRAME_TYPE_CMD_EVENT && cmdHeader->type != FPC_FRAME_TYPE_CMD_RESPONSE)
         return FPC_RESULT_INVALID_PARAM;
@@ -638,36 +638,46 @@ fpc_result_t sfDevFPC2534::processNextResponse(bool flushNone)
 
     fpc_frame_hdr_t frameHeader;
 
+    _comm->beginRead();
     /* Step 1: Read Frame Header */
     fpc_result_t rc = _comm->read((uint8_t *)&frameHeader, sizeof(fpc_frame_hdr_t));
 
     // No data? No problem
     if (rc == FPC_RESULT_IO_NO_DATA)
     {
-        // response.type = SFE_FPC_RESP_NONE;
+        _comm->endRead();
         return FPC_RESULT_OK; // No data to process, just return
     }
     else if (rc != FPC_RESULT_OK)
+    {
+        _comm->endRead();
         return rc;
+    }
 
     // Debug output - helpful when developing
-    Serial.printf("Frame Header: ver 0x%04X, type 0x%02X, flags 0x%04X, payload size %d\n\r", frameHeader.version,
-                  frameHeader.type, frameHeader.flags, frameHeader.payload_size);
+    // Serial.printf("Frame Header: ver 0x%04X, type 0x%02X, flags 0x%04X, payload size %d\n\r", frameHeader.version,
+    //               frameHeader.type, frameHeader.flags, frameHeader.payload_size);
 
     // Sanity check of the header...
     if (frameHeader.version != FPC_FRAME_PROTOCOL_VERSION ||
-        ((frameHeader.flags & (FPC_FRAME_FLAG_SENDER_FW_APP | FPC_FRAME_FLAG_SENDER_FW_BL)) == 0) ||
+        ((frameHeader.flags & FPC_FRAME_FLAG_SENDER_FW_APP) == 0) ||
         (frameHeader.type != FPC_FRAME_TYPE_CMD_RESPONSE && frameHeader.type != FPC_FRAME_TYPE_CMD_EVENT))
+    {
+        // Serial.println("Bad frame header");
+        _comm->endRead();
         return FPC_RESULT_IO_BAD_DATA;
+    }
 
     // okay, lets read the payload
     uint8_t framePayload[frameHeader.payload_size];
 
     rc = _comm->read(framePayload, frameHeader.payload_size);
-
+    _comm->endRead();
     if (rc != FPC_RESULT_OK)
+    {
+        Serial.printf("Error reading payload: %d\n\r", rc);
         return rc;
-
+    }
     // if we are flushing NONE events, and this is one, just return
     if (flushNone)
     {
@@ -691,7 +701,7 @@ fpc_result_t sfDevFPC2534::setLED(bool ledOn)
         requestSetGPIO(1, GPIO_CONTROL_MODE_OUTPUT_PP, ledOn ? GPIO_CONTROL_STATE_SET : GPIO_CONTROL_STATE_RESET);
     if (rc == FPC_RESULT_OK)
     {
-        delay(20);
+        delay(50);
         flushNoneEvent();
     }
     return rc;

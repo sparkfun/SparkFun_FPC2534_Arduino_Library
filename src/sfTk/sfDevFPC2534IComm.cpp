@@ -91,6 +91,7 @@ void sfDevFPC2534IComm::clearISRDataAvailable(void)
 // Data available ?
 bool sfDevFPC2534IComm::isISRDataAvailable(void)
 {
+    // Serial.printf("isISRDataAvailable: usingISRParam=%d, _dataAvailable=%d\r\n", _usingISRParam, _dataAvailable);
     // Are we using the ISR param method?
     if (_usingISRParam)
         return _dataAvailable;
