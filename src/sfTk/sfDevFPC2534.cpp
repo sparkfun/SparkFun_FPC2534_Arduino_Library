@@ -675,7 +675,7 @@ fpc_result_t sfDevFPC2534::processNextResponse(bool flushNone)
     _comm->endRead();
     if (rc != FPC_RESULT_OK)
     {
-        Serial.printf("Error reading payload: %d\n\r", rc);
+        // Serial.printf("Error reading payload: %d\n\r", rc);
         return rc;
     }
     // if we are flushing NONE events, and this is one, just return
