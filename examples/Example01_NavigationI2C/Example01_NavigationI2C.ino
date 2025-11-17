@@ -55,7 +55,7 @@
 //
 // Example pins tested for various SparkFun boards:
 
-// // ESP32 thing plus
+// ESP32 thing plus
 // #define IRQ_PIN 16
 // #define RST_PIN 21
 // #define I2C_BUS 0
