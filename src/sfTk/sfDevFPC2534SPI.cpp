@@ -8,6 +8,8 @@
  *---------------------------------------------------------------------------------
  */
 
+// Implementation of the SPI communication class of the library.
+
 #include "sfDevFPC2534SPI.h"
 
 // --------------------------------------------------------------------------------------------
@@ -17,12 +19,12 @@ sfDevFPC2534SPI::sfDevFPC2534SPI() : _inWrite{false}, _inRead{false}, _spiPort{n
 }
 
 //--------------------------------------------------------------------------------------------
+// Initialize the SPI comms interface.
 bool sfDevFPC2534SPI::initialize(SPIClass &spiPort, SPISettings &busSPISettings, uint8_t csPin, uint32_t interruptPin,
                                  bool bInit)
 
 {
     _spiPort = &spiPort;
-
     _spiSettings = busSPISettings;
     _csPin = csPin;
 
@@ -39,12 +41,14 @@ bool sfDevFPC2534SPI::initialize(SPIClass &spiPort, SPISettings &busSPISettings,
     return true;
 }
 //--------------------------------------------------------------------------------------------
+// Simple initialize with default SPI settings
 bool sfDevFPC2534SPI::initialize(uint8_t csPin, uint32_t interruptPin, bool bInit)
 {
     // If the transaction settings are not provided by the user they are built here.
     SPISettings spiSettings = SPISettings(3000000, MSBFIRST, SPI_MODE0);
     return initialize(SPI, spiSettings, csPin, interruptPin, bInit);
 }
+
 //--------------------------------------------------------------------------------------------
 // Is data available to read - either the device is indicating it via an interrupt, or we have
 // data in our internal buffer
@@ -67,6 +71,7 @@ void sfDevFPC2534SPI::clearData()
     clearISRDataAvailable();
 }
 
+//--------------------------------------------------------------------------------------------
 void sfDevFPC2534SPI::beginWrite(void)
 {
 
@@ -80,7 +85,6 @@ void sfDevFPC2534SPI::beginWrite(void)
     // the  datasheet specifiies a delay greater than 500us after CS goes low
     delayMicroseconds(600);
     _inWrite = true;
-    // Serial.println("Begin SPI Write");
 }
 
 void sfDevFPC2534SPI ::endWrite(void)
@@ -91,7 +95,6 @@ void sfDevFPC2534SPI ::endWrite(void)
     digitalWrite(_csPin, HIGH);
     _spiPort->endTransaction();
     _inWrite = false;
-    // Serial.println("End SPI Write");
 }
 //--------------------------------------------------------------------------------------------
 // Write data to the device
@@ -101,7 +104,6 @@ uint16_t sfDevFPC2534SPI::write(const uint8_t *data, size_t len)
     if (_spiPort == nullptr)
         return FPC_RESULT_IO_RUNTIME_FAILURE; // I2C bus not initialized
 
-    // Serial.printf("Writing %d bytes to SPI\r\n", len);
     // now send the data
 
     for (size_t i = 0; i < len; i++)
@@ -127,14 +129,6 @@ uint16_t sfDevFPC2534SPI::read(uint8_t *data, size_t len)
     if (_inWrite)
         endWrite();
 
-    // _spiPort->beginTransaction(_spiSettings);
-
-    // // Signal communication start
-    // digitalWrite(_csPin, LOW);
-
-    // // the  datasheet specifiies a delay greater than 500us after CS goes low
-    // delayMicroseconds(600);
-
     // if we are not in a read transaction, not okay.
     if (_inRead == false)
         return FPC_RESULT_IO_RUNTIME_FAILURE;
@@ -151,12 +145,12 @@ uint16_t sfDevFPC2534SPI::read(uint8_t *data, size_t len)
     for (size_t i = 0; i < len; i++)
         *data++ = _spiPort->transfer(0x00);
 
-    // // End transaction
-    // digitalWrite(_csPin, HIGH);
-    // _spiPort->endTransaction();
-
     return FPC_RESULT_OK;
 }
+
+// We need to bracket the multiple reads with the SPI transaction calls and drive the CS pin low
+// This is counter to the FPC2534 datasheet, but is what the FPC2534 examples implement. More importantly,
+// this works with Adruino.
 void sfDevFPC2534SPI::beginRead(void)
 {
     if (_spiPort == nullptr)
@@ -172,6 +166,7 @@ void sfDevFPC2534SPI::beginRead(void)
     _inRead = true;
 }
 
+// End the read transaction
 void sfDevFPC2534SPI ::endRead(void)
 {
     if (_spiPort == nullptr || !_inRead)
