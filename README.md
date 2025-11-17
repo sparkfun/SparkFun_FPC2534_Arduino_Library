@@ -16,7 +16,7 @@ The [SparkFun Fingerprint Sensor - FPC2534 Pro]() is a small, highly capable and
 
 ## Functionality
 
-The SparkFun Fingerprint Sensor - FPC2534 Pro is accessible via a variety of interfaces, including I2C and UART, which are supported by this library.
+The SparkFun Fingerprint Sensor - FPC2534 Pro is accessible via a variety of interfaces, including I2C, UART and SPI, which are supported by this library.
 
 This library provides a message-based, easy to use interface that enables fingerprint biometric authentication and simple finger-based navigation. Specifically, the FPC2534AP provides:
 
@@ -74,11 +74,11 @@ While this methodology  is unique to the when compared  to other libraries, it f
 
 ### Using the Library
 
-The first step to using the library is selected the method used to communicate with the device. The library supports I2C on select platforms, or UART (a Serial interface in Arduino). Once selected, and device connected as outlined in the hookup guide for the SparkFun Fingerprint Sensor - FPC2534 Pro. The type of connection depends on the method used to communicate with the device.
+The first step to using the library is selected the method used to communicate with the device. The library supports I2C on select platforms, UART (a Serial interface in Arduino) or SPI. Once selected, and device connected as outlined in the hookup guide for the SparkFun Fingerprint Sensor - FPC2534 Pro. The type of connection depends on the method used to communicate with the device.
 
 #### Getting Started
 
-How the sensor is initialized is dependent  on the communication method being utilized. The following sections outline how to use setup and initialize the I2C or UART interfaces to the device. Once setup, the operation of the device is communication method independent.
+How the sensor is initialized is dependent  on the communication method being utilized. The following sections outline how to use setup and initialize the I2C, UART or SPI interfaces to the device. Once setup, the operation of the device is communication method independent.
 
 ##### Using I2C (Qwiic)
 
@@ -164,6 +164,33 @@ An example of calling the begin method:
 
 At this point, the sensor is ready for normal operation.
 
+##### Using SPI
+
+When using SPI to communicate with the fingerprint sensor, the class named `SfeFPC2534SPI` is used. An example of how to declare the sensor object is as follows:
+
+```c++
+// Declare our sensor object
+SfeFPC2534I2C mySensor;
+```
+
+To initialize the device, the following is needed:
+
+- The SPI bus to use - if using a the simple begin function, the default bus is used.
+- The Settings for the SPI connection - if using a the simple begin function, default settings are used.
+- The CS PIN for the SPI connection
+- The Pin number the IRQ of the device is connected to. This IRQ is used by the sensor to indicated data is available for reading from the device.
+
+An example of calling the simple begin method:
+
+```c++
+    bool status =  mySensor.begin(myCSPin, interruptPin );
+```
+
+At this point, the sensor is ready for normal operation.
+
+> [!NOTE]
+> In the provided examples, the FPC2534 sensor is reset after the ```begin``` method is called, to ensure the senors is in a startup state.
+
 #### General Operation
 
 The operational pattern for the SparkFun FPC2543 Fingerprint sensor library is outlined in the following diagram:
@@ -244,6 +271,7 @@ To further understand how to use Navigation mode, review the Navigation examples
 
 - [Navigation using I2C](examples/Example01_NavigationI2C/Example01_NavigationI2C.ino)
 - [Navigation using Serial](examples/Example03_NavigationUART/Example03_NavigationUART.ino)
+- [Navigation using SPI](examples/Example05_NavigationSPI/Example05_NavigationSPI.ino)
 
 #### Enroll a Fingerprint
 
@@ -270,6 +298,7 @@ To further understand how to use the Enroll mode in your application, review the
 
 - [Enroll and Identify using I2C](examples/Example02_EnrollI2C/Example02_EnrollI2C.ino)
 - [Enroll and Identify using Serial](examples/Example04_EnrollUART/Example04_EnrollUART.ino)
+- [Enroll and Identify using SPI](examples/Example06_EnrollSPI/Example06_EnrollSPI.ino)
 
 #### Identify a Fingerprint
 
