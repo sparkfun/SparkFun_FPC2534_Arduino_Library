@@ -15,12 +15,11 @@
  *    - Delete all existing fingerprints
  *    - Validate a fingerprint
  *
- * This version of this example uses the I2C interface to communicate with the sensor.
+ * This version of this example uses the SPI interface to communicate with the sensor.
  *
  * Example Setup:
- *   - Connect the SparkFun Qwiic FPC2534 Fingerprint sensor to your microcontroller using a qwiic cable.
- *       NOTE: Due to for structure of I2C communications implemented by the FPC2534 sensor, only
- *             ESP32 and Raspberry Pi RP2 microcontrollers are supported by this Arduino Library.
+ *  - Connect the SparkFun Qwiic FPC2534 Fingerprint sensor to your microcontroller using hook-up wires ...
+ *     setup for SPI communication. Note the CS PIN number - this needs to be defined below.
  *  - Connect the RST pin on the sensor to a digital pin on your microcontroller. This is used by the
  *    example to "reset the sensor" on startup.
  *  - Connect the IRQ pin on the sensor to a digital pin on your microcontroller. The sensor triggers
@@ -28,12 +27,7 @@
  *  - Update the IRQ_PIN and RST_PIN defines below to match the pins you are using.
  *
  * Operation:
- *  - On startup, the example "pings" the sensor address to verify it is present on the I2C bus.
- *  - If the sensor is found, the example initializes the sensor library and resets the sensor.
- *    NOTE: A reset appears to be needed after the I2C ping is sent.
- *  - The sensor object is initialized with the sensor address, interrupt pin, and the Wire object.
- *    NOTE: The I2C bus number is also provided, to allow the library to perform the low-level I2C commands
- *          required to read data from the sensor. This is needed due to the way the FPC2534 implements I2C.
+ *  - The sensor object is initialized with the CS pin and the interrupt pin. This examples uses the default SPI bus.
  *  - The example registers several callback functions with the sensor library. These functions are called as
  *    messages are received from the sensor.
  *  - Once running, the example prevents a menu with the following options:
@@ -64,7 +58,7 @@
 //----------------------------------------------------------------------------
 // UPDATE THESE DEFINES TO MATCH YOUR HARDWARE SETUP
 //
-// These are the pins the IRQ and RST pins of the sensor are connected to the microcontroller.
+// These are the pins the CS, IRQ and RST pins of the sensor are connected to the microcontroller.
 //
 // NOTE: The IRQ pin must be an interrupt-capable pin on your microcontroller
 //
