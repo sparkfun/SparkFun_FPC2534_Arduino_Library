@@ -23,11 +23,15 @@ class sfDevFPC2534IComm
     virtual void clearData(void) = 0;
     virtual uint16_t write(const uint8_t *data, size_t len) = 0;
     virtual uint16_t read(uint8_t *data, size_t len) = 0;
+
     // On SPI writes, the CS line needs to remain low during writes (which have multiple blocks).
     // So add a normally no-op beginWrite and endWrite methods that can be overridden by SPI comm classes.
     virtual void beginWrite(void) {};
     virtual void endWrite(void) {};
 
+    // For SPI read, multiple reads for the same transaction need to be bracketed with the Arduino transaction
+    // calls and the CS pin needs to remain low. So again, we add normally no-op beginRead and endRead methods
+    // that can be overridden by SPI comm classes. This keeps the main library code clean and simple.
     virtual void beginRead(void) {};
     virtual void endRead(void) {};
 
