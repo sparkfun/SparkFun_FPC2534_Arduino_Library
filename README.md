@@ -322,6 +322,7 @@ To further understand how to use the Identify mode in your application, review t
 
 - [Enroll and Identify using I2C](examples/Example02_EnrollI2C/Example02_EnrollI2C.ino)
 - [Enroll and Identify using Serial](examples/Example04_EnrollUART/Example04_EnrollUART.ino)
+- [Enroll and Identify using SPI](examples/Example06_EnrollSPI/Example06_EnrollSPI.ino)
 
 > [!NOTE]
 > A behavior noticed when using I2C communication mode and performing an Identify operation was that the sensor can *hang* until the finger is removed from the sensor. When this occurs, the ```on_status()``` callback is called with an event type of ***EVENT_IMAGE_READ*** and method ```currentMode()``` reports a value of **STATE_IDENTIFY**. When detected, it is helpful to prompt the user to remove their finger from the sensor, which will return to normal operation.
