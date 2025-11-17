@@ -47,30 +47,30 @@
 //
 // Example pins tested for various SparkFun boards:
 
-// // ESP32 thing plus
+// ESP32 thing plus
 // #define IRQ_PIN 16
 // #define RST_PIN 21
-// #define I2C_BUS 0
+// #define CS_PIN
 
 // ESP32 thing plus C
 // #define IRQ_PIN 32
 // #define RST_PIN 14
-// #define I2C_BUS 0
+// #define CS_PIN
 
 // ESP32 IoT RedBoard
-#define IRQ_PIN 26
-#define RST_PIN 27
-#define CS_PIN 25
+// #define IRQ_PIN 26
+// #define RST_PIN 27
+// #define CS_PIN 25
 
 // rp2350 thing plus
 // #define IRQ_PIN 11
 // #define RST_PIN 12
-// #define I2C_BUS 0
+// #define CS_PIN
 
 // rp2350 RedBoard IoT
-// #define IRQ_PIN 29
-// #define RST_PIN 28
-// #define I2C_BUS 0
+#define IRQ_PIN 29
+#define RST_PIN 28
+#define CS_PIN 21
 
 // State flags to manage sensor startup/state
 bool startNavigation = true;
