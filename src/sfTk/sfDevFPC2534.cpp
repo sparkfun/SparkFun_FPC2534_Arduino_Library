@@ -697,8 +697,8 @@ fpc_result_t sfDevFPC2534::setLED(bool ledOn)
     if (_comm == nullptr)
         return FPC_RESULT_WRONG_STATE;
 
-    fpc_result_t rc =
-        requestSetGPIO(1, GPIO_CONTROL_MODE_OUTPUT_PP, ledOn ? GPIO_CONTROL_STATE_SET : GPIO_CONTROL_STATE_RESET);
+    fpc_result_t rc = requestSetGPIO(SPARKFUN_FPC2534_LED_PIN, GPIO_CONTROL_MODE_OUTPUT_PP,
+                                     ledOn ? GPIO_CONTROL_STATE_SET : GPIO_CONTROL_STATE_RESET);
     if (rc == FPC_RESULT_OK)
     {
         delay(50);

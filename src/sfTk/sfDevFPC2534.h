@@ -23,6 +23,9 @@
 // This library is dependent on Arduino framework
 #include <Arduino.h>
 
+// Define the LED pin on the FPC2534 board
+const uint8_t SPARKFUN_FPC2534_LED_PIN = 1;
+
 // The design pattern that the library implements follows the standard implementation
 // pattern of the FPC SDK - response from the sensor is delivered via callback functions.
 //
