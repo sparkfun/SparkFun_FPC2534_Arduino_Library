@@ -413,7 +413,7 @@ void setup()
     }
     Serial.println();
     Serial.println("----------------------------------------------------------------");
-    Serial.println(" SparkFun FPC2534 Fingerprint Enrollment Example");
+    Serial.println(" SparkFun FPC2534 Fingerprint Enrollment Example - SPI");
     Serial.println("----------------------------------------------------------------");
     Serial.println();
 

@@ -12,7 +12,7 @@
  * of the sensor. This example uses the SPI interface to communicate with the sensor.
  *
  * Example Setup:
- *   - Connect the SparkFun Qwiic FPC2534 Fingerprint sensor to your microcontroller using SPI.
+ *  - Connect the SparkFun Qwiic FPC2534 Fingerprint sensor to your microcontroller using SPI.
  *  - Connect the RST pin on the sensor to a digital pin on your microcontroller. This is used by the
  *    example to "reset the sensor" on startup.
  *  - Connect the IRQ pin on the sensor to a digital pin on your microcontroller. The sensor triggers
@@ -232,11 +232,11 @@ void setup()
     Serial.begin(115200); // Set baud rate to 115200
     while (!Serial)
     {
-        ; // Wait for serial port to connect. Needed for native USB port only
+        ; // Wait for serial port to connect.
     }
     Serial.println();
     Serial.println("----------------------------------------------------------------");
-    Serial.println(" SparkFun FPC2534 Navigation Example - I2C");
+    Serial.println(" SparkFun FPC2534 Navigation Example - SPI");
     Serial.println("----------------------------------------------------------------");
     Serial.println();
 
