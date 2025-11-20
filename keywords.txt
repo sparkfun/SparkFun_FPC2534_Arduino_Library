@@ -1,0 +1,43 @@
+# Syntax Coloring Map for SparkFun FPC2534 Arduino Library
+
+# Methods and Functions (KEYWORD2)
+begin       KEYWORD2
+requestStatus       KEYWORD2
+requestVersion       KEYWORD2
+requestEnroll       KEYWORD2
+requestIdentify       KEYWORD2
+requestAbort       KEYWORD2
+requestListTemplates       KEYWORD2
+requestDeleteTemplate       KEYWORD2
+sendReset       KEYWORD2
+startNavigationMode       KEYWORD2
+startBuiltInSelfTest       KEYWORD2
+requestSetGPIO       KEYWORD2
+requestGetGPIO       KEYWORD2
+setSystemConfig       KEYWORD2
+requestGetSystemConfig       KEYWORD2
+factoryReset       KEYWORD2
+currentMode       KEYWORD2
+isFingerPresent       KEYWORD2   
+setCallbacks       KEYWORD2
+initialize       KEYWORD2
+isReady       KEYWORD2
+isDataAvailable       KEYWORD2
+clearData       KEYWORD2
+setLED       KEYWORD2
+processNextResponse       KEYWORD2
+
+# Instances (KEYWORD2)
+SfeFPC2534I2C   KEYWORD2
+SfeFPC2534UART  KEYWORD2
+SfeFPC2534SPI   KEYWORD2
+
+
+# Structures (KEYWORD3)
+sfDevFPC2534Callbacks_t     KEYWORD3
+fpc_result_t        KEYWORD3
+fpc_system_config_t     KEYWORD3
+
+# Constants (LITERAL1)
+kFPC2534DefaultAddress      LITERAL1
+SFE_FPC2534_I2C_ADDRESS     LITERAL1
