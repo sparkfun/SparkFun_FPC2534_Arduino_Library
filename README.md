@@ -1,5 +1,5 @@
 
-![SparkFun Fingerprint Sensor - FPC2534 Pro (Qwiic))](docs/images/gh-banner-2025-ultrasonic-dist.png "SparkFun Fingerprint Sensor")
+![SparkFun Fingerprint Sensor - FPC2534 Pro (Qwiic))](docs/images/gh-banner-2025-arduino-fpc2543.png "SparkFun Fingerprint Sensor")
 
 # SparkFun Fingerprint Sensor - FPC2534 Pro
 
@@ -12,7 +12,7 @@ Arduino Library for the SparkFun Fingerprint Sensor - FPC2534 Pro
 ![Compile - Test](https://img.shields.io/github/actions/workflow/status/sparkfun/SparkFun_FPC2534_Arduino_Library/compile-sketch.yml?label=compile%20test)
 ![GitHub issues](https://img.shields.io/github/issues/sparkfun/SparkFun_FPC2534_Arduino_Library)
 
-The [SparkFun Fingerprint Sensor - FPC2534 Pro](https://www.sparkfun.com) is a small, highly capable and robust fingerprint sensor that can easily be integrated into virtually  any application. Based off the AllKey Biometric System family from Fingerprints Cards (FPC), the FPC2534AP delivers incredible functionality in a small, compact formfactor.
+The [SparkFun Fingerprint Sensor - FPC2534 Pro](https://www.sparkfun.com/sparkfun-fingerprint-sensor-fpc2534-qwiic.html) is a small, highly capable and robust fingerprint sensor that can easily be integrated into virtually  any application. Based off the AllKey Biometric System family from Fingerprints Cards (FPC), the FPC2534AP delivers incredible functionality in a small, compact formfactor.
 
 ## Functionality
 
