@@ -9,7 +9,6 @@
  */
 
 #include <Arduino.h>
-#include <Wire.h>
 
 #include "SparkFun_FPC2534.h"
 
