@@ -5,7 +5,7 @@
 
 Arduino Library for the SparkFun Fingerprint Sensor - FPC2534 Pro
 
-![License](https://img.shields.io/github/license/sparkfun/SparkFun_FPC2534_Arduino_Library)
+![GitHub License](https://img.shields.io/github/license/sparkfun/SparkFun_FPC2534_Arduino_Library)
 ![Release](https://img.shields.io/github/v/release/sparkfun/SparkFun_FPC2534_Arduino_Library)
 ![Release Date](https://img.shields.io/github/release-date/sparkfun/SparkFun_FPC2534_Arduino_Library)
 ![Documentation - build](https://img.shields.io/github/actions/workflow/status/sparkfun/SparkFun_FPC2534_Arduino_Library/build-deploy-ghpages.yml?label=doc%20build)

@@ -6,7 +6,7 @@
     "description": "Library for the SparkFun FPC2534 Fingerprint Sensor breakout board",
     "repository": {
         "type": "git",
-        "url": "https://www.sparkfun.com/"
+        "url": "https://github.com/sparkfun/SparkFun_FPC2534_Arduino_Library"
     },
     "frameworks": "arduino"
 }
