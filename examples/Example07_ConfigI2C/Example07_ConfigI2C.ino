@@ -9,42 +9,13 @@
  */
 
 /*
- * Example using the SparkFun FPC2534 Fingerprint sensor library to demonstrate the fingerprint
- * enrollment and identification of the sensor.  The example provides the user with the following options:
- *    - Enroll a new fingerprint
- *    - Delete all existing fingerprints
- *    - Validate a fingerprint
+ * Example using the SparkFun FPC2534 Fingerprint sensor library to demonstrate the configuration
+ * capabilities of the sensor.  The example retrieves the current system configuration from the sensor,
+ * modifies one of the configuration values, and sends the updated configuration back to the sensor.
  *
- * This version of this example uses the SPI interface to communicate with the sensor.
+ * NOTE: Currently, the set of the updated values fails.
  *
- * Example Setup:
- *  - Connect the SparkFun Qwiic FPC2534 Fingerprint sensor to your microcontroller using hook-up wires ...
- *     setup for SPI communication. Note the CS PIN number - this needs to be defined below.
- *  - Connect the RST pin on the sensor to a digital pin on your microcontroller. This is used by the
- *    example to "reset the sensor" on startup.
- *  - Connect the IRQ pin on the sensor to a digital pin on your microcontroller. The sensor triggers
- *    an interrupt on this pin when it has data to send.
- *  - Update the IRQ_PIN and RST_PIN defines below to match the pins you are using.
- *
- * Operation:
- *  - The sensor object is initialized with the CS pin and the interrupt pin. This examples uses the default SPI bus.
- *  - The example registers several callback functions with the sensor library. These functions are called as
- *    messages are received from the sensor.
- *  - Once running, the example prevents a menu with the following options:
- *      1) Enroll a new fingerprint
- *      2) Erase all existing fingerprint templates
- *      3) Validate a fingerprint
- *
- *   Once an optoin is selected (enter the menu number), the example performs the requested operation.
- *
- *  - When registering a new fingerprint, the example prompts the user to place and remove their finger repeatedly
- *    until the fingerprint is fully enrolled. The example prints out the number of samples remaining as
- *    reported by the sensor. Normally 12 samples are needed to fully enroll a fingerprint.
- *  - When deleting all fingerprints, the example sends the delete command to the sensor. If successful,
- *    the example resets its internal count of enrolled fingerprints to zero.
- *  - When validating a fingerprint, the example prompts the user to place their finger on the sensor.
- *    If the fingerprint matches an enrolled fingerprint, the example prints out the ID of the matched
- *    fingerprint template.
+ * This version of this example uses the I2C interface to communicate with the sensor.
  *
  *---------------------------------------------------------------------------------
  */
@@ -159,13 +130,9 @@ static void on_is_ready_change(bool isReady)
 //
 static void on_status(uint16_t event, uint16_t state)
 {
-    Serial.print("[STATUS]\tEvent: 0x");
-    Serial.print(event, HEX);
-    Serial.print(" State: 0x");
-    Serial.println(state, HEX);
-
     deviceIdle = (event == EVENT_IDLE);
 }
+//----------------------------------------------------------------------------
 static void update_config(fpc_system_config_t &new_config)
 {
     // The current values haven't been received yet
@@ -209,6 +176,8 @@ static void print_config(fpc_system_config_t &cfg)
     Serial.println(cfg.finger_scan_interval_ms);
     Serial.print("  System Flags:\t\t\t  0x");
     Serial.println(cfg.sys_flags, HEX);
+    Serial.print("  Allows Factory Reset:\t\t  ");
+    Serial.println((cfg.sys_flags & CFG_SYS_FLAG_ALLOW_FACTORY_RESET) ? "Yes" : "No");
     Serial.print("  UART Delay Before IRQ (ms):\t  ");
     Serial.println(cfg.uart_delay_before_irq_ms);
     Serial.print("  UART Baudrate:\t\t  0x");
@@ -248,16 +217,18 @@ void on_system_config_get(fpc_system_config_t *cfg)
     }
     else if (configState == CONFIG_VERIFY)
     {
-        // verify the set worked
+        // verify the config set worked
         if (cfg->idfy_max_consecutive_fails == the_config.idfy_max_consecutive_fails + 1)
-        {
             Serial.println("[INFO]\t\tConfiguration update verified successfully.");
-            configState = CONFIG_RESET;
-        }
         else
         {
+            Serial.println();
             Serial.println("[ERROR]\tConfiguration update verification failed.");
+            Serial.println();
         }
+
+        // back to entry state
+        configState = CONFIG_RESET;
     }
 }
 //------------------------------------------------------------------------------------
@@ -284,7 +255,62 @@ void reset_sensor(void)
     digitalWrite(RST_PIN, HIGH); // Set reset pin high
     delay(250);                  // Wait for sensor to initialize
 }
+//------------------------------------------------------------------------------------
+// Process the simple sequece of steps for the demo.
 
+void process_demo_steps(void)
+{
+
+    // if we have the config, and haven't updated it yet, do so now
+    if (configState == CONFIG_RECEIVED)
+    {
+        // update the max fails value
+        update_config_max_fails(the_config.idfy_max_consecutive_fails + 1);
+
+        configState = CONFIG_SET;
+    }
+    else if (configState == CONFIG_SET)
+    {
+        // Get the new value of the config to verify the set worked
+        Serial.println("[INFO]\t\tRequesting system configuration...");
+        // Request the configuration from the connected device.
+        fpc_result_t rc = mySensor.requestGetSystemConfig(FPC_SYS_CFG_TYPE_DEFAULT);
+        if (rc != FPC_RESULT_OK)
+        {
+            Serial.print("[ERROR]\tGet config request failed - error: ");
+            Serial.println(rc);
+        }
+        else
+            configState = CONFIG_VERIFY;
+    }
+    else if (configState == CONFIG_RESET)
+    {
+        // Reset to defaults
+        fpc_result_t rc = mySensor.setSystemConfig(&the_config);
+        if (rc != FPC_RESULT_OK)
+        {
+            Serial.print("[ERROR]\tSet config request failed - error: ");
+            Serial.println(rc);
+        }
+        else
+            Serial.println("[INFO]\t\tSet config to the original value");
+        configState = CONFIG_COMPLETE;
+    }
+    else if (configState == CONFIG_COMPLETE)
+    {
+        // Get the new value of the config to verify the set worked
+        Serial.println("[INFO]\t\tRequesting final configuration...");
+        // Request the configuration from the connected device.
+        fpc_result_t rc = mySensor.requestGetSystemConfig(FPC_SYS_CFG_TYPE_DEFAULT);
+        if (rc != FPC_RESULT_OK)
+        {
+            Serial.print("[ERROR]\tGet config request failed - error: ");
+            Serial.println(rc);
+        }
+        else
+            configState = CONFIG_EXIT;
+    }
+}
 //------------------------------------------------------------------------------------
 // setup()
 //
@@ -300,7 +326,10 @@ void setup()
     }
     Serial.println();
     Serial.println("----------------------------------------------------------------");
-    Serial.println(" SparkFun FPC2534 Fingerprint Config Example - SPI");
+    Serial.println(" SparkFun FPC2534 Fingerprint Config Example - I2C");
+    Serial.println();
+    Serial.println(" **NOTE** Currently the `setSystemConfig` command fails to set the updated values.");
+    Serial.println();
     Serial.println("----------------------------------------------------------------");
     Serial.println();
 
@@ -364,56 +393,7 @@ void loop()
         reset_sensor();
     }
     else if (deviceIdle)
-    {
-        // if we have the config, and haven't updated it yet, do so now
-        if (configState == CONFIG_RECEIVED)
-        {
-            // update the max fails value
-            update_config_max_fails(the_config.idfy_max_consecutive_fails + 1);
-            configState = CONFIG_SET;
-        }
-        else if (configState == CONFIG_SET)
-        {
-            // Get the new value of the config to verify the set worked
-            Serial.println("[INFO]\t\tRequesting system configuration...");
-            // Request the configuration from the connected device.
-            fpc_result_t rc = mySensor.requestGetSystemConfig(FPC_SYS_CFG_TYPE_DEFAULT);
-            if (rc != FPC_RESULT_OK)
-            {
-                Serial.print("[ERROR]\tGet config request failed - error: ");
-                Serial.println(rc);
-            }
-            else
-                configState = CONFIG_VERIFY;
-        }
-        else if (configState == CONFIG_RESET)
-        {
-            // Reset to defaults
-            fpc_result_t rc = mySensor.setSystemConfig(&the_config);
-            if (rc != FPC_RESULT_OK)
-            {
-                Serial.print("[ERROR]\tSet config request failed - error: ");
-                Serial.println(rc);
-            }
-            else
-                Serial.println("[INFO]\t\tSet config to the original value");
-            configState = CONFIG_COMPLETE;
-        }
-        else if (configState == CONFIG_COMPLETE)
-        {
-            // Get the new value of the config to verify the set worked
-            Serial.println("[INFO]\t\tRequesting final configuration...");
-            // Request the configuration from the connected device.
-            fpc_result_t rc = mySensor.requestGetSystemConfig(FPC_SYS_CFG_TYPE_DEFAULT);
-            if (rc != FPC_RESULT_OK)
-            {
-                Serial.print("[ERROR]\tGet config request failed - error: ");
-                Serial.println(rc);
-            }
-            else
-                configState = CONFIG_EXIT;
-        }
-    }
+        process_demo_steps();
 
     delay(200);
 }
