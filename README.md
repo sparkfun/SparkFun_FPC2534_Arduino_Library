@@ -27,7 +27,7 @@ This library provides a message-based, easy to use interface that enables finger
 - Application integration via a variety of communication methods
 
 > [!NOTE]
-> The structure of the I2C transactions implemented by the FPC2434 sensor are not directly supported by the Arduino Wire/I2C library. To support the I2C interface to the FPC2434, this library implements *helper* functions that handle the FPC2434 I2C transactions. These implementations are only supported on RP2 and ESP32 systems.
+> The structure of the I2C transactions implemented by the FPC2434 sensor are not directly supported by the Arduino Wire/I2C library. To support the I2C interface to the FPC2434, this library implements *helper* functions that handle the FPC2434 I2C transactions. These implementations are only ***supported on RP2 and ESP32*** systems.
 
 ### Functionality not Supported by the Library
 
