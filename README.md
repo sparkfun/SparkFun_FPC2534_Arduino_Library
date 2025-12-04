@@ -12,7 +12,7 @@ Arduino Library for the SparkFun Fingerprint Sensor - FPC2534 Pro
 [![Compile Test](https://github.com/sparkfun/SparkFun_FPC2534_Arduino_Library/actions/workflows/test-compile-sketch.yml/badge.svg)](https://github.com/sparkfun/SparkFun_FPC2534_Arduino_Library/actions/workflows/test-compile-sketch.yml)
 ![GitHub issues](https://img.shields.io/github/issues/sparkfun/SparkFun_FPC2534_Arduino_Library)
 
-The [SparkFun Fingerprint Sensor - FPC2534 Pro](https://www.sparkfun.com/sparkfun-fingerprint-sensor-fpc2534-qwiic.html) is a small, highly capable and robust fingerprint sensor that can easily be integrated into virtually  any application. Based off the AllKey Biometric System family from Fingerprints Cards (FPC), the FPC2534AP delivers incredible functionality in a small, compact formfactor.
+The [SparkFun Fingerprint Sensor - FPC2534 Pro](https://www.sparkfun.com/sparkfun-fingerprint-sensor-fpc2534-qwiic.html) is a small, highly capable and robust fingerprint sensor that can easily be integrated into virtually  any application. Based off the AllKey Biometric System family from Fingerprints Cards (FPC), the FPC2534AP delivers incredible functionality in a small, compact form factor.
 
 ## Functionality
 
@@ -25,6 +25,9 @@ This library provides a message-based, easy to use interface that enables finger
 - Fingerprint matching/identification  for biometric authentication
 - Trackpad like functionality for simple, finger-based navigation
 - Application integration via a variety of communication methods
+
+> [!NOTE]
+> The structure of the I2C transactions implemented by the FPC2434 sensor are not directly supported by the Arduino Wire/I2C library. To support the I2C interface to the FPC2434, this library implements *helper* functions that handle the FPC2434 I2C transactions. These implementations are only supported on RP2 and ESP32 systems.
 
 ### Functionality not Supported by the Library
 
